@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+// Not so crucial for now
 public class ShowCamera extends SurfaceView implements SurfaceHolder.Callback {
 
    private SurfaceHolder mHolder;

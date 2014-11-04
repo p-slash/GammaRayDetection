@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.app.Activity;
@@ -22,12 +23,15 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
    final static int NOISE_MODE   = 0;
    final static int EXP_MODE     = 1;
-   final static int PIC_NUMBER   = 5;
+   final static int PIC_NUMBER   = 3;
+   final static int SLEEP_TIME   = 1000; // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
-   private ImageView pic;
 
+   public static char in_lett = 'E';   // to distinguish noise and experimental files
+
+   // Safely open the camera
    public static Camera getAvailiableCamera() {
       Camera object = null;
 
@@ -40,53 +44,33 @@ public class MainActivity extends Activity {
 
       return object; 
    }
-
-   private PictureCallback ExpIt = new PictureCallback() {
+   
+   // Capturing a photo
+   private PictureCallback SnapIt = new PictureCallback() {
 
       @Override
       public void onPictureTaken(byte[] data, Camera camera) {
-         if(!isExternalStorageWritable())
-            return;
-         
-         File foto = getOutputMediaFile(EXP_MODE);
-
-         if (foto == null){
-            Log.d("MediaFile", "Error creating media file, check storage permissions: ");
-            return;
-         }
-
-         try {        
-            FileOutputStream fos = new FileOutputStream(foto.getPath());
-       
-            fos.write(data[0]);
-            fos.close();
-         } 
-         catch (FileNotFoundException e) {
-            Log.d("File", "File not found: " + e.getMessage());
-         } 
-         catch (IOException e) {
-            Log.d("File", "Error accessing file: " + e.getMessage());
-        }
-   
-         cameraObject.startPreview();
-         takePicture();
+         new SavePicture().execute(data);
+         camera.startPreview();
       }
    };
-
-   private PictureCallback NoiseIt = new PictureCallback() {
-
-      @Override
-      public void onPictureTaken(byte[] data, Camera camera) {
+   
+   // Async task to save files
+   private class SavePicture extends AsyncTask<byte[], Void, Void> {
+      protected Void doInBackground(byte[]... data) { // photo is in data
+         // Check external storage
          if(!isExternalStorageWritable())
-            return;
+            return null;
          
-         File foto = getOutputMediaFile(NOISE_MODE);
+         // Safely choose a file for foto.
+         File foto = getOutputMediaFile();
 
          if (foto == null) {
             Log.d("MediaFile", "Error creating media file, check storage permissions: ");
-            return;
+            return null;
          }
 
+         // Write data to foto
          try {        
             FileOutputStream fos = new FileOutputStream(foto.getPath());
        
@@ -99,20 +83,42 @@ public class MainActivity extends Activity {
          catch (IOException e) {
             Log.d("File", "Error accessing file: " + e.getMessage());
          }
-   
-         cameraObject.startPreview();
-      }
-   };
-   
+         
+         return null;
+     }
 
-   public void StartIt(View view){
-      if(cameraObject != null)
-         cameraObject.takePicture(null, null, ExpIt);
+     protected void onProgressUpdate() {
+     }
+
+     protected void onPostExecute() {
+     }
+      
    }
 
+   // Starting experiment, linked to Start Button
+   public void StartIt(View view){
+      if(cameraObject != null) {
+         in_lett = 'E';    // Initial letter to jpg file
+         
+         for(int i = 0; i < PIC_NUMBER; i++) {
+            try {
+               cameraObject.takePicture(null, null, SnapIt);
+   			   Thread.sleep(1000);   			   
+            } 
+            catch (InterruptedException e) {
+   			   // TODO Auto-generated catch block
+   			   e.printStackTrace();
+            }
+         }
+      }
+   }
+
+   // Calibrating for noise, linked to Noise Button
    public void CalibrateIt(View view){
-      if(cameraObject != null) 
-         cameraObject.takePicture(null, null, NoiseIt);
+      if(cameraObject != null) {
+         in_lett = 'N';
+         cameraObject.takePicture(null, null, SnapIt);
+      }
    }
 
    @Override
@@ -121,6 +127,7 @@ public class MainActivity extends Activity {
       return true;
    }
    
+   // Check external storage
    public boolean isExternalStorageWritable() {
       String state = Environment.getExternalStorageState();
 
@@ -130,10 +137,11 @@ public class MainActivity extends Activity {
       return false;
    }
 
-   /** Create a File for saving an image or video */
-   private static File getOutputMediaFile(int type){
+   /** Create a File for saving an image */
+   private static File getOutputMediaFile(){
       // To be safe, you should check that the SDCard is mounted
       // using Environment.getExternalStorageState() before doing this.
+      // Done by isExternalStorageWritable()
 
       File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
       // This location works best if you want the created images to be shared
@@ -151,15 +159,8 @@ public class MainActivity extends Activity {
       String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       File mediaFile = null;
 
-      switch(type) {
-         case NOISE_MODE:
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator + "N_"+ timeStamp + ".jpg");
-            break;
-         case EXP_MODE:
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator + "E_"+ timeStamp + ".jpg");
-            break;
-      }      
-      
+      mediaFile = new File(mediaStorageDir.getPath() + File.separator +  in_lett + "_"+ timeStamp + ".jpg");
+           
       return mediaFile;
    }
 
@@ -169,6 +170,15 @@ public class MainActivity extends Activity {
       setContentView(R.layout.activity_main);
 
       cameraObject = getAvailiableCamera();
+
+      Camera.Parameters params = cameraObject.getParameters();
+      //Set flash off
+      params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+      //Set scene mode to maximize exposure time
+      params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
+      //Set parameters
+      cameraObject.setParameters(params);
+
       showCamera = new ShowCamera(this, cameraObject);
       FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
       preview.addView(showCamera);
