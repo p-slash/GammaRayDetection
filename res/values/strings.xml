@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+   <string name="app_name">Gamma Ray</string>
+   <string name="action_settings">Settings</string>
+   <string name="Start">S</string>
+   <string name="Noise">N</string>
+   <string name="Stop">X</string>
+    
+</resources>
