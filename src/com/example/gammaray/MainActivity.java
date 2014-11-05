@@ -36,7 +36,15 @@ public class MainActivity extends Activity {
       Camera object = null;
 
       try {
-         object = Camera.open(); 
+         object = Camera.open();
+
+         Camera.Parameters params = object.getParameters();
+         //Set flash off
+         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+         //Set scene mode to maximize exposure time
+         params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
+         //Set parameters
+         object.setParameters(params); 
       }
       catch (Exception e){
          Log.e("CameraOpen", "Error in camera", e);
@@ -51,13 +59,12 @@ public class MainActivity extends Activity {
       @Override
       public void onPictureTaken(byte[] data, Camera camera) {
          new SavePicture().execute(data);
-         camera.startPreview();
       }
    };
    
    // Async task to save files
    private class SavePicture extends AsyncTask<byte[], Void, Void> {
-      protected Void doInBackground(byte[]... data) { // photo is in data
+      protected Void doInBackground (byte[]... data) { // photo is in data
          // Check external storage
          if(!isExternalStorageWritable())
             return null;
@@ -66,7 +73,7 @@ public class MainActivity extends Activity {
          File foto = getOutputMediaFile();
 
          if (foto == null) {
-            Log.d("MediaFile", "Error creating media file, check storage permissions: ");
+            Log.d("MediaFile", "Error creating media file, check storage permissions.");
             return null;
          }
 
@@ -100,16 +107,11 @@ public class MainActivity extends Activity {
       if(cameraObject != null) {
          in_lett = 'E';    // Initial letter to jpg file
          
-         for(int i = 0; i < PIC_NUMBER; i++) {
-            try {
-               cameraObject.takePicture(null, null, SnapIt);
-   			   Thread.sleep(1000);   			   
-            } 
-            catch (InterruptedException e) {
-   			   // TODO Auto-generated catch block
-   			   e.printStackTrace();
-            }
-         }
+         //for(int i = 0; i < PIC_NUMBER; i++) {
+            cameraObject.takePicture(null, null, SnapIt);
+            cameraObject.startPreview();
+   			//Toast.makeText(getApplicationContext(), i, Toast.LENGTH_SHORT).show();   			   
+         //}
       }
    }
 
@@ -118,6 +120,7 @@ public class MainActivity extends Activity {
       if(cameraObject != null) {
          in_lett = 'N';
          cameraObject.takePicture(null, null, SnapIt);
+         cameraObject.startPreview();
       }
    }
 
@@ -170,17 +173,40 @@ public class MainActivity extends Activity {
       setContentView(R.layout.activity_main);
 
       cameraObject = getAvailiableCamera();
-
-      Camera.Parameters params = cameraObject.getParameters();
-      //Set flash off
-      params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
-      //Set scene mode to maximize exposure time
-      params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
-      //Set parameters
-      cameraObject.setParameters(params);
-
+      /*
+       * Creates a new Intent to start the RSSPullService
+       * IntentService. Passes a URI in the
+       * Intent's "data" field.
+       */
+      mPhotoMan = new Intent(getActivity(), PhotoManager.class);
+      //mPhotoMan.setData();
+      
       showCamera = new ShowCamera(this, cameraObject);
       FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
       preview.addView(showCamera);
+   }
+
+   @Override
+   public void onPause() {
+      super.onPause();  // Always call the superclass method first
+
+      // Release the Camera because we don't need it when paused
+      // and other activities might need to use it.
+      if (cameraObject != null) {
+         //cameraObject.stopPreview();
+         cameraObject.release();
+         cameraObject = null;
+      }
+   }
+
+   @Override
+   public void onResume() {
+      super.onResume();  // Always call the superclass method first
+   
+       // Get the Camera instance as the activity achieves full user focus
+      if (cameraObject == null) {
+         cameraObject = getAvailiableCamera(); // Local method to handle camera init
+         // cameraObject.startPreview();
+      }
    }
 }

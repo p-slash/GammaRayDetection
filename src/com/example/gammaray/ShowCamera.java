@@ -60,7 +60,8 @@ public class ShowCamera extends SurfaceView implements SurfaceHolder.Callback {
       try   {
          mCamera.setPreviewDisplay(holder);
          mCamera.startPreview(); 
-      } catch (IOException e) {
+      } 
+      catch (IOException e) {
       }
    }
 
