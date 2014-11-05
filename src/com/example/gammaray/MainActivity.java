@@ -4,8 +4,8 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+//import android.graphics.Bitmap;
+//import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.os.AsyncTask;
@@ -16,7 +16,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
+//import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -178,7 +178,7 @@ public class MainActivity extends Activity {
        * IntentService. Passes a URI in the
        * Intent's "data" field.
        */
-      mPhotoMan = new Intent(getActivity(), PhotoManager.class);
+      //mPhotoMan = new Intent(getActivity(), PhotoManager.class);
       //mPhotoMan.setData();
       
       showCamera = new ShowCamera(this, cameraObject);
