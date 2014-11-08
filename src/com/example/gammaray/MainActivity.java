@@ -4,8 +4,6 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-//import android.graphics.Bitmap;
-//import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.os.AsyncTask;
@@ -17,9 +15,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.FrameLayout;
-//import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
+//import android.widget.Toast;
 
 public class MainActivity extends Activity {
    final static int NOISE_MODE   = 0;
