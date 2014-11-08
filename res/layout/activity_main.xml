@@ -3,7 +3,6 @@
    android:layout_width="fill_parent"
    android:layout_height="fill_parent"
    android:orientation="horizontal" >
-        
    <FrameLayout
       android:id="@+id/camera_preview"
       android:layout_height="fill_parent"
@@ -20,12 +19,14 @@
          android:layout_width="40dp"
          android:onClick="StartIt"
          android:text="@string/Start" />
+      <!--
       <Button
          android:id="@+id/button_noise"
          android:layout_height="40dp"
          android:layout_width="40dp"
          android:onClick="CalibrateIt"
          android:text="@string/Noise" />
+      -->
       <Button
          android:id="@+id/button_stop"
          android:layout_height="40dp"
