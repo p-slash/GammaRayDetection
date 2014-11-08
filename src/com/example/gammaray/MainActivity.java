@@ -22,7 +22,7 @@ public class MainActivity extends Activity {
    final static int NOISE_MODE   = 0;
    final static int EXP_MODE     = 1;
    final static int PIC_NUMBER   = 3;
-   final static int SLEEP_TIME   = 1000; // in ms
+   final static int SLEEP_TIME   = 500; // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
             return null;
          }
 
-         // Write data to fofoutto
+         // Write data to fout
          try {        
             FileOutputStream fos = new FileOutputStream(fout.getPath());
        
@@ -152,12 +152,6 @@ public class MainActivity extends Activity {
          photoHandler.removeCallbacks(startTakingPhotos);
       }
    }
-
-   @Override
-   public boolean onCreateOptionsMenu(Menu menu) {
-      getMenuInflater().inflate(R.menu.main, menu);
-      return true;
-   }
    
    // Check external storage
    public boolean isExternalStorageWritable() {
@@ -211,6 +205,8 @@ public class MainActivity extends Activity {
    @Override
    public void onPause() {
       super.onPause();  // Always call the superclass method first
+      
+      photoHandler = null;
 
       // Release the Camera because we don't need it when paused
       // and other activities might need to use it.
@@ -226,6 +222,8 @@ public class MainActivity extends Activity {
    @Override
    public void onResume() {
       super.onResume();  // Always call the superclass method first
+      
+      photoHandler = new Handler();
    
        // Get the Camera instance as the activity achieves full user focus
       if (cameraObject == null) {
@@ -233,4 +231,12 @@ public class MainActivity extends Activity {
          cameraObject.startPreview();
       }
    }
+
+   /*
+   @Override
+   public boolean onCreateOptionsMenu(Menu menu) {
+      getMenuInflater().inflate(R.menu.main, menu);
+      return true;
+   }
+   */
 }
