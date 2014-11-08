@@ -26,5 +26,11 @@
          android:layout_width="40dp"
          android:onClick="CalibrateIt"
          android:text="@string/Noise" />
+      <Button
+         android:id="@+id/button_stop"
+         android:layout_height="40dp"
+         android:layout_width="40dp"
+         android:onClick="StopIt"
+         android:text="@string/Stop" />
    </LinearLayout>
 </LinearLayout>

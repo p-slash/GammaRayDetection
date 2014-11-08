@@ -11,6 +11,7 @@ import android.hardware.Camera.PictureCallback;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.app.Activity;
 import android.util.Log;
 import android.view.Menu;
@@ -28,7 +29,9 @@ public class MainActivity extends Activity {
 
    private Camera cameraObject;
    private ShowCamera showCamera;
-
+   private Handler photoHandler = new Handler();
+   
+   private  static boolean camEnable = false;
    public static char in_lett = 'E';   // to distinguish noise and experimental files
 
    // Safely open the camera
@@ -42,53 +45,70 @@ public class MainActivity extends Activity {
          //Set flash off
          params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
          //Set scene mode to maximize exposure time
-         params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
+         //params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
          //Set parameters
-         object.setParameters(params); 
+         object.setParameters(params);
+
+         camEnable = true;
       }
       catch (Exception e){
-         Log.e("CameraOpen", "Error in camera", e);
+         camEnable = false;
+         Log.e("DeadJim", "Error in camera", e);
       }
 
       return object; 
    }
    
+   private Runnable startTakingPhotos = new Runnable() {
+      public void run() {
+         cameraObject.takePicture(null, null, SnapIt);
+         cameraObject.startPreview();
+
+         photoHandler.postDelayed(this, SLEEP_TIME); // run this again SLEEP_TIME after
+      }
+   };
+
    // Capturing a photo
    private PictureCallback SnapIt = new PictureCallback() {
 
       @Override
       public void onPictureTaken(byte[] data, Camera camera) {
-         new SavePicture().execute(data);
+         new SaveData().execute(data);
       }
    };
    
    // Async task to save files
-   private class SavePicture extends AsyncTask<byte[], Void, Void> {
+   private class SaveData extends AsyncTask<byte[], Void, Void> {
       protected Void doInBackground (byte[]... data) { // photo is in data
          // Check external storage
          if(!isExternalStorageWritable())
             return null;
          
-         // Safely choose a file for foto.
-         File foto = getOutputMediaFile();
+         File fout;
 
-         if (foto == null) {
-            Log.d("MediaFile", "Error creating media file, check storage permissions.");
+         if (data[0].length == PIC_NUMBER)
+            fout = getOutputFile(".txt");
+         else
+            fout = getOutputFile(".jpg");
+
+         if (fout == null) {
+            Log.d("DeadJim", "Error creating file, check storage permissions.");
             return null;
          }
 
-         // Write data to foto
+         // Write data to fofoutto
          try {        
-            FileOutputStream fos = new FileOutputStream(foto.getPath());
+            FileOutputStream fos = new FileOutputStream(fout.getPath());
        
             fos.write(data[0]);
+            fos.flush();
             fos.close();
          } 
          catch (FileNotFoundException e) {
-            Log.d("File", "File not found: " + e.getMessage());
+            Log.d("DeadJim", "File not found: " + e.getMessage());
          } 
          catch (IOException e) {
-            Log.d("File", "Error accessing file: " + e.getMessage());
+            Log.d("DeadJim", "Error accessing file: " + e.getMessage());
          }
          
          return null;
@@ -107,20 +127,32 @@ public class MainActivity extends Activity {
       if(cameraObject != null) {
          in_lett = 'E';    // Initial letter to jpg file
          
-         //for(int i = 0; i < PIC_NUMBER; i++) {
-            cameraObject.takePicture(null, null, SnapIt);
-            cameraObject.startPreview();
-   			//Toast.makeText(getApplicationContext(), i, Toast.LENGTH_SHORT).show();   			   
-         //}
+         if(camEnable) {
+            photoHandler.postDelayed(startTakingPhotos, 0);
+
+            camEnable = false;
+         }
       }
    }
 
    // Calibrating for noise, linked to Noise Button
-   public void CalibrateIt(View view){
+   public void CalibrateIt(View view) {
       if(cameraObject != null) {
          in_lett = 'N';
-         cameraObject.takePicture(null, null, SnapIt);
-         cameraObject.startPreview();
+         
+         if(camEnable) {
+            photoHandler.postDelayed(startTakingPhotos, 0);
+
+            camEnable = false;
+         }
+      }
+   }
+
+   public void StopIt(View view) {
+      if (cameraObject != null) {
+         camEnable = true;
+
+         photoHandler.removeCallbacks(startTakingPhotos);
       }
    }
 
@@ -141,30 +173,30 @@ public class MainActivity extends Activity {
    }
 
    /** Create a File for saving an image */
-   private static File getOutputMediaFile(){
+   private static File getOutputFile(String extention){
       // To be safe, you should check that the SDCard is mounted
       // using Environment.getExternalStorageState() before doing this.
       // Done by isExternalStorageWritable()
 
-      File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
+      File mStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
       // This location works best if you want the created images to be shared
       // between applications and persist after your app has been uninstalled.
 
       // Create the storage directory if it does not exist
-      if (!mediaStorageDir.exists()) {
-         if (!mediaStorageDir.mkdirs()){
-            Log.d("GammaRay", "failed to create directory");
+      if (!mStorageDir.exists()) {
+         if (!mStorageDir.mkdirs()){
+            Log.d("DeadJim", "failed to create directory");
             return null;
          }
       }
 
       // Create a media file name
       String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-      File mediaFile = null;
+      File mFile = null;
 
-      mediaFile = new File(mediaStorageDir.getPath() + File.separator +  in_lett + "_"+ timeStamp + ".jpg");
+      mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
            
-      return mediaFile;
+      return mFile;
    }
 
    @Override
@@ -173,13 +205,6 @@ public class MainActivity extends Activity {
       setContentView(R.layout.activity_main);
 
       cameraObject = getAvailiableCamera();
-      /*
-       * Creates a new Intent to start the RSSPullService
-       * IntentService. Passes a URI in the
-       * Intent's "data" field.
-       */
-      //mPhotoMan = new Intent(getActivity(), PhotoManager.class);
-      //mPhotoMan.setData();
       
       showCamera = new ShowCamera(this, cameraObject);
       FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
@@ -196,6 +221,8 @@ public class MainActivity extends Activity {
          //cameraObject.stopPreview();
          cameraObject.release();
          cameraObject = null;
+
+         photoHandler.removeCallbacks(startTakingPhotos);
       }
    }
 
@@ -206,7 +233,7 @@ public class MainActivity extends Activity {
        // Get the Camera instance as the activity achieves full user focus
       if (cameraObject == null) {
          cameraObject = getAvailiableCamera(); // Local method to handle camera init
-         // cameraObject.startPreview();
+         cameraObject.startPreview();
       }
    }
 }
