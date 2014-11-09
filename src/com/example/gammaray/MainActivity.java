@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -17,20 +16,19 @@ import android.app.Activity;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.Toast;
+//import android.widget.Toast;
 
 public class MainActivity extends Activity {
    final static int PIC_NUMBER   = 100;
    final static int PIX_NUMBER   = 10;
-   final static int SLEEP_TIME   = 100; // in ms
+   final static int NOISE_LENGTH = PIC_NUMBER * PIX_NUMBER;
+   final static int SLEEP_TIME   = 500; // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
    private Handler photoHandler = new Handler(); // To take consequetive photos
    
-   private static byte noiseData[] = new byte[PIC_NUMBER * PIX_NUMBER];
    private static boolean butEnable = false; // disable start button if already taking pictures
-   private static int counter = 0;           // to count how many pictures are taken
    private static char in_lett = 'E';        // to distinguish noise and experimental files
 
    // Safely open the camera
@@ -41,12 +39,11 @@ public class MainActivity extends Activity {
          object = Camera.open();
 
          Camera.Parameters params = object.getParameters();
-         //Set flash off
-         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
-         //Set scene mode to maximize exposure time
-         //params.setSceneMode(Camera.Parameters.SCENE_MODE_NIGHT);
-         //Set parameters
-         object.setParameters(params);
+         
+         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);               // Set flash off
+         params.setExposureCompensation(params.getMaxExposureCompensation()); // Set max exposure
+         params.setJpegQuality(100);                                          // Max jpeg quality
+         object.setParameters(params);                                        // Set parameters
 
          butEnable = true;
       }
@@ -60,21 +57,15 @@ public class MainActivity extends Activity {
 
    // Starting experiment, linked to Start Button
    public void StartIt(View view){
-      if (cameraObject != null) {
-         //in_lett = 'E';    // Initial letter to jpg file
-         
-         //counter = 0;
-         
-         if(butEnable) {
-            photoHandler.postDelayed(startTakingPhotos, 0);
+      if ((cameraObject != null) && butEnable) {
+         photoHandler.postDelayed(startTakingPhotos, 0);
 
-            butEnable = false;
-         }
+         butEnable = false;
       }
    }
 
    public void StopIt(View view) {
-      if (cameraObject != null) {
+      if ((cameraObject != null) && !butEnable) {
          butEnable = true;
 
          photoHandler.removeCallbacks(startTakingPhotos);
@@ -83,29 +74,11 @@ public class MainActivity extends Activity {
 
    // Calls SnapIt to save the photo, and later itself
    private Runnable startTakingPhotos = new Runnable() {
-      public void run() {
-         counter++;     // increase the number of pictures
-
-         cameraObject.takePicture(null, null, SnapIt);
-         cameraObject.startPreview();
-         
-         if (counter == PIC_NUMBER)
-            return;
-         
-         photoHandler.postDelayed(this, SLEEP_TIME); // run this again SLEEP_TIME after
-      }
-   };
-
-   // Called after capturing the photo. Creates a asynctask to manage data.
-   private PictureCallback SnapIt = new PictureCallback() {
-      @Override
-      public void onPictureTaken(byte[] data, Camera camera) {
-         new saveData().execute(data);  
-      }
-   };  
-
-   // AsyncTask to manage data. Gets a pixel value, put it in noiseData and saves the picture
-   private class saveData extends AsyncTask<byte[], Void, String> {
+      private int counter = 0;         // to count how many pictures are taken
+      private Bitmap bmp;
+      private int index = 0;
+      private int coord = 10;
+      private byte noiseData[] = new byte[NOISE_LENGTH];
 
       private boolean isExternalStorageWritable() {
          String state = Environment.getExternalStorageState();
@@ -149,7 +122,7 @@ public class MainActivity extends Activity {
             return false;
          
          File fout;
-         boolean isTxt = (data.length == PIC_NUMBER); // true if we are going to save noiseData
+         boolean isTxt = (data.length == NOISE_LENGTH); // true if we are going to save noiseData
 
          if (isTxt)
             fout = getOutputFile(".txt");
@@ -193,44 +166,54 @@ public class MainActivity extends Activity {
          return true;
       }
 
-      protected String doInBackground (byte[]... data) {
-         Bitmap bmp = BitmapFactory.decodeByteArray(data[0] , 0, data[0].length);
-
-         if (bmp == null) {   // not successful, capture another photo
-            counter--;        // out of sync??
-            return null;
-         }
-
-         int index = counter * PIX_NUMBER;
-         int coord = 10;
-
-         for (int i = 0; i < PIX_NUMBER; i++) {
-            coord += 50 * i;
-
-            noiseData[index + i - 1] = (byte)(Color.red(bmp.getPixel(coord , coord))); // get red comp of the pixel
-         }         
-
-         //saveFile(data[0]);
-
-         if (counter == PIC_NUMBER) {
-            saveFile(noiseData);
-            return "Number of pictures taken: " + PIC_NUMBER;
-         }
-
-         return null;
-      }
-      /*
-      protected void onProgressUpdate() {
-      }
-      */
-
-      protected void onPostExecute(String result) {
-         if (result == null)
+      private void doTheThing(byte[] data) {
+         if (counter == PIC_NUMBER)
             return;
 
-         Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+         bmp = BitmapFactory.decodeByteArray(data , 0, data.length);
+
+         if (bmp == null) {   // not successful, capture another photo
+            counter--;
+            return;
+         }
+
+         index = counter * PIX_NUMBER;
+         coord = 10;
+
+         for (int i = 0; i < PIX_NUMBER; i++) {
+            coord += 50;
+
+            noiseData[index + i] = (byte)(Color.red(bmp.getPixel(coord , coord))); // get red comp of the pixel
+         }         
+
+         //saveFile(data);
+         counter++;     // increase the number of pictures
+         Log.d("DeadJim", "Number of pic:" + counter);
+         return;
       }
-   }
+      
+      // Called after capturing the photo. Creates a asynctask to manage data.
+      private PictureCallback SnapIt = new PictureCallback() {
+         @Override
+         public void onPictureTaken(byte[] data, Camera camera) {
+            doTheThing(data);
+            return;  
+         }
+      };
+
+      public void run() {
+         if (counter == PIC_NUMBER) {
+            saveFile(noiseData);
+            photoHandler.removeCallbacks(this);
+            return;
+         }
+
+         cameraObject.takePicture(null, null, SnapIt);
+         cameraObject.startPreview();         
+         
+         photoHandler.postDelayed(this, SLEEP_TIME); // run this again SLEEP_TIME after
+      }
+   };
 
    @Override
    protected void onCreate(Bundle savedInstanceState) {
@@ -280,4 +263,5 @@ public class MainActivity extends Activity {
       return true;
    }
    */
+    //Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
 }
