@@ -17,13 +17,11 @@ import android.app.Activity;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
-//import android.widget.Toast;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int NOISE_MODE   = 0;
-   final static int EXP_MODE     = 1;
-   final static int PIC_NUMBER   = 3;
-   final static int SLEEP_TIME   = 500; // in ms
+   final static int PIC_NUMBER   = 100;
+   final static int SLEEP_TIME   = 300; // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
@@ -31,8 +29,8 @@ public class MainActivity extends Activity {
    
    private static byte noiseData[] = new byte[PIC_NUMBER];
    private static boolean butEnable = false;
-   public static int counter = 0;
-   public static char in_lett = 'E';   // to distinguish noise and experimental files
+   private static int counter = 0;
+   private static char in_lett = 'E';   // to distinguish noise and experimental files
 
    // Safely open the camera
    public static Camera getAvailiableCamera() {
@@ -64,7 +62,7 @@ public class MainActivity extends Activity {
       if (cameraObject != null) {
          in_lett = 'E';    // Initial letter to jpg file
          
-         counter = 0;
+         //counter = 0;
          
          if(butEnable) {
             photoHandler.postDelayed(startTakingPhotos, 0);
@@ -106,7 +104,7 @@ public class MainActivity extends Activity {
    };  
 
    // AsyncTask to manage data. Gets a pixel value, put it in noiseData and saves the picture
-   private class saveData extends AsyncTask<byte[], Void, Void> {
+   private class saveData extends AsyncTask<byte[], Void, String> {
 
       private boolean isExternalStorageWritable() {
          String state = Environment.getExternalStorageState();
@@ -191,7 +189,7 @@ public class MainActivity extends Activity {
          return true;
       }
 
-      protected Void doInBackground (byte[]... data) {
+      protected String doInBackground (byte[]... data) {
          Bitmap bmp = BitmapFactory.decodeByteArray(data[0] , 0, data[0].length);
 
          if (bmp == null)
@@ -199,19 +197,26 @@ public class MainActivity extends Activity {
 
          noiseData[counter - 1] = (byte)(Color.red(bmp.getPixel(500, 500))); // get red comp of the pixel
 
-         saveFile(data[0]);
+         //saveFile(data[0]);
 
-         if (counter == PIC_NUMBER)
+         if (counter == PIC_NUMBER) {
             saveFile(noiseData);
+            return "Number of pictures taken: " + PIC_NUMBER;
+         }
 
          return null;
       }
       /*
       protected void onProgressUpdate() {
       }
+      */
 
-      protected void onPostExecute() {
-      }*/
+      protected void onPostExecute(String result) {
+         if (result == null)
+            return;
+         
+         Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+      }
    }
 
    @Override
