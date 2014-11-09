@@ -21,13 +21,14 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
    final static int PIC_NUMBER   = 100;
-   final static int SLEEP_TIME   = 300; // in ms
+   final static int PIX_NUMBER   = 10;
+   final static int SLEEP_TIME   = 100; // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
    private Handler photoHandler = new Handler();
    
-   private static byte noiseData[] = new byte[PIC_NUMBER];
+   private static byte noiseData[] = new byte[PIC_NUMBER * PIX_NUMBER];
    private static boolean butEnable = false;
    private static int counter = 0;
    private static char in_lett = 'E';   // to distinguish noise and experimental files
@@ -165,6 +166,9 @@ public class MainActivity extends Activity {
             FileOutputStream fos = new FileOutputStream(fout.getPath(), true);
             
             if (isTxt) {
+               fos.write(Integer.toString(PIX_NUMBER).getBytes());
+               fos.write("\n".getBytes());
+               
                for (byte a : data) {
                   fos.write(Byte.toString(a).getBytes());
                   fos.write("\n".getBytes());
@@ -195,7 +199,14 @@ public class MainActivity extends Activity {
          if (bmp == null)
             return null;
 
-         noiseData[counter - 1] = (byte)(Color.red(bmp.getPixel(500, 500))); // get red comp of the pixel
+         int index = counter * PIX_NUMBER;
+         int coord = 10;
+
+         for (int i = 0; i < PIX_NUMBER; i++) {
+            coord += 50 * i;
+
+            noiseData[index + i - 1] = (byte)(Color.red(bmp.getPixel(coord , coord))); // get red comp of the pixel
+         }         
 
          //saveFile(data[0]);
 
@@ -214,7 +225,7 @@ public class MainActivity extends Activity {
       protected void onPostExecute(String result) {
          if (result == null)
             return;
-         
+
          Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
       }
    }
