@@ -19,20 +19,20 @@ import android.widget.FrameLayout;
 //import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER   = 10;
+   final static int PIC_NUMBER   = 100;
    final static int PIX_NUMBER   = 10;
    final static int NOISE_LENGTH = PIC_NUMBER * PIX_NUMBER;
-   final static int SLEEP_TIME   = 500; // in ms
+   final static int SLEEP_TIME   = 500;            // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
-   private Handler photoHandler = new Handler(); // To take consequetive photos
+   private Handler photoHandler = new Handler();   // To take consecutive photos
+   private boolean butEnable = false;              // disable start button if already taking pictures
    
-   private static boolean butEnable = false; // disable start button if already taking pictures
-   private static char in_lett = 'E';        // to distinguish noise and experimental files
+   private static char in_lett = 'E';              // to distinguish noise and experimental files
 
    // Safely open the camera
-   public static Camera getAvailiableCamera() {
+   private Camera getAvailiableCamera() {
       Camera object = null;
 
       try {
@@ -118,11 +118,11 @@ public class MainActivity extends Activity {
 
       private boolean saveFile(byte[] data) {
          // Check external storage
-         if (!isExternalStorageWritable())
+         if (!isExternalStorageWritable())    
             return false;
          
          File fout;
-         boolean isTxt = (data.length == NOISE_LENGTH); // true if we are going to save noiseData
+         boolean isTxt = (data.length == NOISE_LENGTH);  // true if we are going to save noiseData
 
          if (isTxt)
             fout = getOutputFile(".txt");
@@ -141,13 +141,12 @@ public class MainActivity extends Activity {
             if (isTxt) {
                fos.write(Integer.toString(PIC_NUMBER).getBytes());
                fos.write(",".getBytes());
-               
-               fos.write(Integer.toString(PIX_NUMBER).getBytes());
-               fos.write(",".getBytes());
+
+               fos.write(Integer.toString(PIX_NUMBER).getBytes());               
 
                for (byte a : data) {
-                  fos.write(Byte.toString(a).getBytes());
                   fos.write(",".getBytes());
+                  fos.write(Byte.toString(a).getBytes());
                }
 
             }
@@ -175,7 +174,8 @@ public class MainActivity extends Activity {
 
          bmp = BitmapFactory.decodeByteArray(data , 0, data.length);
 
-         if (bmp == null) {   // not successful, capture another photo
+         // not successful, capture another photo
+         if (bmp == null) {   
             counter--;
             return;
          }
@@ -186,11 +186,17 @@ public class MainActivity extends Activity {
          for (int i = 0; i < PIX_NUMBER; i++) {
             coord += 50;
 
-            noiseData[index + i] = (byte)(Color.red(bmp.getPixel(coord , coord))); // get red comp of the pixel
+            // get red comp of the pixel
+            noiseData[index + i] = (byte)(Color.red(bmp.getPixel(coord , coord)));  
          }         
-
-         //saveFile(data);
-         counter++;     // increase the number of pictures
+         
+         // increase the number of pictures
+         counter++;
+         
+         // save the last picture
+         if (counter == PIC_NUMBER)
+            saveFile(data);
+         
          Log.d("DeadJim", "Number of pic:" + counter);
          return;
       }
@@ -205,8 +211,8 @@ public class MainActivity extends Activity {
       };
 
       public void run() {
-         if (counter == PIC_NUMBER) {
-            saveFile(noiseData);
+         if (counter == PIC_NUMBER) {                    // enough data
+            saveFile(noiseData);                         // save it
             photoHandler.removeCallbacks(this);
             return;
          }
@@ -214,7 +220,7 @@ public class MainActivity extends Activity {
          cameraObject.takePicture(null, null, SnapIt);
          cameraObject.startPreview();         
          
-         photoHandler.postDelayed(this, SLEEP_TIME); // run this again SLEEP_TIME after
+         photoHandler.postDelayed(this, SLEEP_TIME);     // run this again SLEEP_TIME after
       }
    };
 
@@ -236,25 +242,23 @@ public class MainActivity extends Activity {
       
       photoHandler.removeCallbacks(startTakingPhotos);
       photoHandler = null;
+
       // Release the Camera because we don't need it when paused
       // and other activities might need to use it.
       if (cameraObject != null) {
-         //cameraObject.stopPreview();
          cameraObject.release();
-         cameraObject = null;
-
-         
+         cameraObject = null;         
       }
    }
 
    @Override
    public void onResume() {
-      super.onResume();  // Always call the superclass method first
+      super.onResume();                         // Always call the superclass method first
       photoHandler = new Handler();
       
       // Get the Camera instance as the activity achieves full user focus
       if (cameraObject == null) {
-         cameraObject = getAvailiableCamera(); // Local method to handle camera init
+         cameraObject = getAvailiableCamera();  // Local method to handle camera init
          cameraObject.startPreview();
       }
    }
