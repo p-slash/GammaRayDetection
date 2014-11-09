@@ -32,27 +32,29 @@ public class MainActivity extends Activity {
    private static char in_lett = 'E';              // to distinguish noise and experimental files
 
    // Safely open the camera
-   private Camera getAvailiableCamera() {
-      Camera object = null;
+   private boolean getAvailiableCamera() {
+      cameraObject = null;
 
       try {
-         object = Camera.open();
+         cameraObject = Camera.open();
 
-         Camera.Parameters params = object.getParameters();
+         Camera.Parameters params = cameraObject.getParameters();
          
          params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);               // Set flash off
          params.setExposureCompensation(params.getMaxExposureCompensation()); // Set max exposure
-         params.setJpegQuality(100);                                          // Max jpeg quality
-         object.setParameters(params);                                        // Set parameters
+         params.setJpegQuality(100);                                                // Max jpeg quality
+         cameraObject.setParameters(params);                                        // Set parameters
 
          butEnable = true;
+
+         return true;
       }
       catch (Exception e){
          butEnable = false;
          Log.e("DeadJim", "Error in camera", e);
       }
 
-      return object; 
+      return false; 
    } 
 
    // Starting experiment, linked to Start Button
@@ -79,94 +81,6 @@ public class MainActivity extends Activity {
       private int index = 0;
       private int coord = 10;
       private byte noiseData[] = new byte[NOISE_LENGTH];
-
-      private boolean isExternalStorageWritable() {
-         String state = Environment.getExternalStorageState();
-
-         if (Environment.MEDIA_MOUNTED.equals(state))
-             return true;
-         
-         return false;
-      }
-
-      // Create a File to save data. extension : .txt or .jpg
-      private File getOutputFile(String extention){
-         // To be safe, you should check that the SDCard is mounted
-         // using Environment.getExternalStorageState() before doing this.
-         // Done by isExternalStorageWritable()
-
-         File mStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
-         // This location works best if you want the created images to be shared
-         // between applications and persist after your app has been uninstalled.
-
-         // Create the storage directory if it does not exist
-         if (!mStorageDir.exists()) {
-            if (!mStorageDir.mkdirs()){
-               Log.d("DeadJim", "failed to create directory");
-               return null;
-            }
-         }
-
-         // Create a file name
-         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-         File mFile = null;
-
-         mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
-              
-         return mFile;
-      }
-
-      private boolean saveFile(byte[] data) {
-         // Check external storage
-         if (!isExternalStorageWritable())    
-            return false;
-         
-         File fout;
-         boolean isTxt = (data.length == NOISE_LENGTH);  // true if we are going to save noiseData
-
-         if (isTxt)
-            fout = getOutputFile(".txt");
-         else
-            fout = getOutputFile(".jpg");
-
-         if (fout == null) {
-            Log.d("DeadJim", "Error creating file, check storage permissions.");
-            return false;
-         }
-
-         // Write data to fout
-         try {        
-            FileOutputStream fos = new FileOutputStream(fout.getPath(), true);
-            
-            if (isTxt) {
-               fos.write(Integer.toString(PIC_NUMBER).getBytes());
-               fos.write(",".getBytes());
-
-               fos.write(Integer.toString(PIX_NUMBER).getBytes());               
-
-               for (byte a : data) {
-                  fos.write(",".getBytes());
-                  fos.write(Byte.toString(a).getBytes());
-               }
-
-            }
-            else
-               fos.write(data);
-            
-            fos.flush();
-            fos.close();
-         } 
-         catch (FileNotFoundException e) {
-            Log.d("DeadJim", "File not found: " + e.getMessage());
-            return false;
-         } 
-         catch (IOException e) {
-            Log.d("DeadJim", "Error accessing file: " + e.getMessage());
-            return false;
-         }
-
-         return true;
-      }
 
       private void doTheThing(byte[] data) {
          if (counter == PIC_NUMBER)
@@ -224,12 +138,100 @@ public class MainActivity extends Activity {
       }
    };
 
+   private static boolean isExternalStorageWritable() {
+      String state = Environment.getExternalStorageState();
+
+      if (Environment.MEDIA_MOUNTED.equals(state))
+          return true;
+      
+      return false;
+   }
+
+   // Create a File to save data. extension : .txt or .jpg
+   private static File getOutputFile(String extention){
+      // To be safe, you should check that the SDCard is mounted
+      // using Environment.getExternalStorageState() before doing this.
+      // Done by isExternalStorageWritable()
+
+      File mStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
+      // This location works best if you want the created images to be shared
+      // between applications and persist after your app has been uninstalled.
+
+      // Create the storage directory if it does not exist
+      if (!mStorageDir.exists()) {
+         if (!mStorageDir.mkdirs()){
+            Log.d("DeadJim", "failed to create directory");
+            return null;
+         }
+      }
+
+      // Create a file name
+      String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+      File mFile = null;
+
+      mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
+           
+      return mFile;
+   }
+
+   private static boolean saveFile(byte[] data) {
+      // Check external storage
+      if (!isExternalStorageWritable())    
+         return false;
+      
+      File fout;
+      boolean isTxt = (data.length == NOISE_LENGTH);  // true if we are going to save noiseData
+
+      if (isTxt)
+         fout = getOutputFile(".txt");
+      else
+         fout = getOutputFile(".jpg");
+
+      if (fout == null) {
+         Log.d("DeadJim", "Error creating file, check storage permissions.");
+         return false;
+      }
+
+      // Write data to fout
+      try {        
+         FileOutputStream fos = new FileOutputStream(fout.getPath(), true);
+         
+         if (isTxt) {
+            fos.write(Integer.toString(PIC_NUMBER).getBytes());
+            fos.write(",".getBytes());
+
+            fos.write(Integer.toString(PIX_NUMBER).getBytes());               
+
+            for (byte a : data) {
+               fos.write(",".getBytes());
+               fos.write(Byte.toString(a).getBytes());
+            }
+
+         }
+         else
+            fos.write(data);
+         
+         fos.flush();
+         fos.close();
+      } 
+      catch (FileNotFoundException e) {
+         Log.d("DeadJim", "File not found: " + e.getMessage());
+         return false;
+      } 
+      catch (IOException e) {
+         Log.d("DeadJim", "Error accessing file: " + e.getMessage());
+         return false;
+      }
+
+      return true;
+   }
+      
    @Override
    protected void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
       setContentView(R.layout.activity_main);
 
-      cameraObject = getAvailiableCamera();
+      getAvailiableCamera();
       
       showCamera = new ShowCamera(this, cameraObject);
       FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
@@ -258,7 +260,7 @@ public class MainActivity extends Activity {
       
       // Get the Camera instance as the activity achieves full user focus
       if (cameraObject == null) {
-         cameraObject = getAvailiableCamera();  // Local method to handle camera init
+         getAvailiableCamera();  // Local method to handle camera init
          cameraObject.startPreview();
       }
    }
