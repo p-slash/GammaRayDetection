@@ -26,12 +26,12 @@ public class MainActivity extends Activity {
 
    private Camera cameraObject;
    private ShowCamera showCamera;
-   private Handler photoHandler = new Handler();
+   private Handler photoHandler = new Handler(); // To take consequetive photos
    
    private static byte noiseData[] = new byte[PIC_NUMBER * PIX_NUMBER];
-   private static boolean butEnable = false;
-   private static int counter = 0;
-   private static char in_lett = 'E';   // to distinguish noise and experimental files
+   private static boolean butEnable = false; // disable start button if already taking pictures
+   private static int counter = 0;           // to count how many pictures are taken
+   private static char in_lett = 'E';        // to distinguish noise and experimental files
 
    // Safely open the camera
    public static Camera getAvailiableCamera() {
@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
    // Starting experiment, linked to Start Button
    public void StartIt(View view){
       if (cameraObject != null) {
-         in_lett = 'E';    // Initial letter to jpg file
+         //in_lett = 'E';    // Initial letter to jpg file
          
          //counter = 0;
          
@@ -84,7 +84,7 @@ public class MainActivity extends Activity {
    // Calls SnapIt to save the photo, and later itself
    private Runnable startTakingPhotos = new Runnable() {
       public void run() {
-         counter++;
+         counter++;     // increase the number of pictures
 
          cameraObject.takePicture(null, null, SnapIt);
          cameraObject.startPreview();
@@ -149,7 +149,7 @@ public class MainActivity extends Activity {
             return false;
          
          File fout;
-         boolean isTxt = (data.length == PIC_NUMBER);
+         boolean isTxt = (data.length == PIC_NUMBER); // true if we are going to save noiseData
 
          if (isTxt)
             fout = getOutputFile(".txt");
@@ -196,8 +196,10 @@ public class MainActivity extends Activity {
       protected String doInBackground (byte[]... data) {
          Bitmap bmp = BitmapFactory.decodeByteArray(data[0] , 0, data[0].length);
 
-         if (bmp == null)
+         if (bmp == null) {   // not successful, capture another photo
+            counter--;        // out of sync??
             return null;
+         }
 
          int index = counter * PIX_NUMBER;
          int coord = 10;
