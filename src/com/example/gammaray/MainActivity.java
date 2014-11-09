@@ -4,6 +4,9 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.os.AsyncTask;
@@ -12,22 +15,23 @@ import android.os.Environment;
 import android.os.Handler;
 import android.app.Activity;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.TextView;
-//import android.widget.Toast;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER   = 3;
-   final static int SLEEP_TIME   = 500; // in ms
+   final static int PIC_NUMBER   = 100;
+   final static int PIX_NUMBER   = 10;
+   final static int SLEEP_TIME   = 100; // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
    private Handler photoHandler = new Handler();
    
-   private  static boolean camEnable = false;
-   public static char in_lett = 'E';   // to distinguish noise and experimental files
+   private static byte noiseData[] = new byte[PIC_NUMBER * PIX_NUMBER];
+   private static boolean butEnable = false;
+   private static int counter = 0;
+   private static char in_lett = 'E';   // to distinguish noise and experimental files
 
    // Safely open the camera
    public static Camera getAvailiableCamera() {
@@ -44,148 +48,186 @@ public class MainActivity extends Activity {
          //Set parameters
          object.setParameters(params);
 
-         camEnable = true;
+         butEnable = true;
       }
       catch (Exception e){
-         camEnable = false;
+         butEnable = false;
          Log.e("DeadJim", "Error in camera", e);
       }
 
       return object; 
-   }
-   
-   private Runnable startTakingPhotos = new Runnable() {
-      public void run() {
-         cameraObject.takePicture(null, null, SnapIt);
-         cameraObject.startPreview();
-
-         photoHandler.postDelayed(this, SLEEP_TIME); // run this again SLEEP_TIME after
-      }
-   };
-
-   // Capturing a photo
-   private PictureCallback SnapIt = new PictureCallback() {
-
-      @Override
-      public void onPictureTaken(byte[] data, Camera camera) {
-         new SaveData().execute(data);
-      }
-   };
-   
-   // Async task to save files
-   private class SaveData extends AsyncTask<byte[], Void, Void> {
-      protected Void doInBackground (byte[]... data) { // photo is in data
-         // Check external storage
-         if(!isExternalStorageWritable())
-            return null;
-         
-         File fout;
-
-         if (data[0].length == PIC_NUMBER)
-            fout = getOutputFile(".txt");
-         else
-            fout = getOutputFile(".jpg");
-
-         if (fout == null) {
-            Log.d("DeadJim", "Error creating file, check storage permissions.");
-            return null;
-         }
-
-         // Write data to fout
-         try {        
-            FileOutputStream fos = new FileOutputStream(fout.getPath());
-       
-            fos.write(data[0]);
-            fos.flush();
-            fos.close();
-         } 
-         catch (FileNotFoundException e) {
-            Log.d("DeadJim", "File not found: " + e.getMessage());
-         } 
-         catch (IOException e) {
-            Log.d("DeadJim", "Error accessing file: " + e.getMessage());
-         }
-         
-         return null;
-     }
-
-     protected void onProgressUpdate() {
-     }
-
-     protected void onPostExecute() {
-     }
-      
-   }
+   } 
 
    // Starting experiment, linked to Start Button
    public void StartIt(View view){
-      if(cameraObject != null) {
+      if (cameraObject != null) {
          in_lett = 'E';    // Initial letter to jpg file
          
-         if(camEnable) {
-            photoHandler.postDelayed(startTakingPhotos, 0);
-
-            camEnable = false;
-         }
-      }
-   }
-
-   // Calibrating for noise, linked to Noise Button
-   public void CalibrateIt(View view) {
-      if(cameraObject != null) {
-         in_lett = 'N';
+         //counter = 0;
          
-         if(camEnable) {
+         if(butEnable) {
             photoHandler.postDelayed(startTakingPhotos, 0);
 
-            camEnable = false;
+            butEnable = false;
          }
       }
    }
 
    public void StopIt(View view) {
       if (cameraObject != null) {
-         camEnable = true;
+         butEnable = true;
 
          photoHandler.removeCallbacks(startTakingPhotos);
       }
    }
-   
-   // Check external storage
-   public boolean isExternalStorageWritable() {
-      String state = Environment.getExternalStorageState();
 
-      if (Environment.MEDIA_MOUNTED.equals(state))
-          return true;
-      
-      return false;
-   }
+   // Calls SnapIt to save the photo, and later itself
+   private Runnable startTakingPhotos = new Runnable() {
+      public void run() {
+         counter++;
 
-   /** Create a File for saving an image */
-   private static File getOutputFile(String extention){
-      // To be safe, you should check that the SDCard is mounted
-      // using Environment.getExternalStorageState() before doing this.
-      // Done by isExternalStorageWritable()
+         cameraObject.takePicture(null, null, SnapIt);
+         cameraObject.startPreview();
+         
+         if (counter == PIC_NUMBER)
+            return;
+         
+         photoHandler.postDelayed(this, SLEEP_TIME); // run this again SLEEP_TIME after
+      }
+   };
 
-      File mStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
-      // This location works best if you want the created images to be shared
-      // between applications and persist after your app has been uninstalled.
+   // Called after capturing the photo. Creates a asynctask to manage data.
+   private PictureCallback SnapIt = new PictureCallback() {
+      @Override
+      public void onPictureTaken(byte[] data, Camera camera) {
+         new saveData().execute(data);  
+      }
+   };  
 
-      // Create the storage directory if it does not exist
-      if (!mStorageDir.exists()) {
-         if (!mStorageDir.mkdirs()){
-            Log.d("DeadJim", "failed to create directory");
-            return null;
-         }
+   // AsyncTask to manage data. Gets a pixel value, put it in noiseData and saves the picture
+   private class saveData extends AsyncTask<byte[], Void, String> {
+
+      private boolean isExternalStorageWritable() {
+         String state = Environment.getExternalStorageState();
+
+         if (Environment.MEDIA_MOUNTED.equals(state))
+             return true;
+         
+         return false;
       }
 
-      // Create a media file name
-      String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-      File mFile = null;
+      // Create a File to save data. extension : .txt or .jpg
+      private File getOutputFile(String extention){
+         // To be safe, you should check that the SDCard is mounted
+         // using Environment.getExternalStorageState() before doing this.
+         // Done by isExternalStorageWritable()
 
-      mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
-           
-      return mFile;
+         File mStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "GammaRay");
+         // This location works best if you want the created images to be shared
+         // between applications and persist after your app has been uninstalled.
+
+         // Create the storage directory if it does not exist
+         if (!mStorageDir.exists()) {
+            if (!mStorageDir.mkdirs()){
+               Log.d("DeadJim", "failed to create directory");
+               return null;
+            }
+         }
+
+         // Create a file name
+         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+         File mFile = null;
+
+         mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
+              
+         return mFile;
+      }
+
+      private boolean saveFile(byte[] data) {
+         // Check external storage
+         if (!isExternalStorageWritable())
+            return false;
+         
+         File fout;
+         boolean isTxt = (data.length == PIC_NUMBER);
+
+         if (isTxt)
+            fout = getOutputFile(".txt");
+         else
+            fout = getOutputFile(".jpg");
+
+         if (fout == null) {
+            Log.d("DeadJim", "Error creating file, check storage permissions.");
+            return false;
+         }
+
+         // Write data to fout
+         try {        
+            FileOutputStream fos = new FileOutputStream(fout.getPath(), true);
+            
+            if (isTxt) {
+               fos.write(Integer.toString(PIX_NUMBER).getBytes());
+               fos.write("\n".getBytes());
+               
+               for (byte a : data) {
+                  fos.write(Byte.toString(a).getBytes());
+                  fos.write("\n".getBytes());
+               }
+
+            }
+            else
+               fos.write(data);
+            
+            fos.flush();
+            fos.close();
+         } 
+         catch (FileNotFoundException e) {
+            Log.d("DeadJim", "File not found: " + e.getMessage());
+            return false;
+         } 
+         catch (IOException e) {
+            Log.d("DeadJim", "Error accessing file: " + e.getMessage());
+            return false;
+         }
+
+         return true;
+      }
+
+      protected String doInBackground (byte[]... data) {
+         Bitmap bmp = BitmapFactory.decodeByteArray(data[0] , 0, data[0].length);
+
+         if (bmp == null)
+            return null;
+
+         int index = counter * PIX_NUMBER;
+         int coord = 10;
+
+         for (int i = 0; i < PIX_NUMBER; i++) {
+            coord += 50 * i;
+
+            noiseData[index + i - 1] = (byte)(Color.red(bmp.getPixel(coord , coord))); // get red comp of the pixel
+         }         
+
+         //saveFile(data[0]);
+
+         if (counter == PIC_NUMBER) {
+            saveFile(noiseData);
+            return "Number of pictures taken: " + PIC_NUMBER;
+         }
+
+         return null;
+      }
+      /*
+      protected void onProgressUpdate() {
+      }
+      */
+
+      protected void onPostExecute(String result) {
+         if (result == null)
+            return;
+
+         Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+      }
    }
 
    @Override
@@ -204,8 +246,8 @@ public class MainActivity extends Activity {
    public void onPause() {
       super.onPause();  // Always call the superclass method first
       
+      photoHandler.removeCallbacks(startTakingPhotos);
       photoHandler = null;
-
       // Release the Camera because we don't need it when paused
       // and other activities might need to use it.
       if (cameraObject != null) {
@@ -213,17 +255,16 @@ public class MainActivity extends Activity {
          cameraObject.release();
          cameraObject = null;
 
-         photoHandler.removeCallbacks(startTakingPhotos);
+         
       }
    }
 
    @Override
    public void onResume() {
       super.onResume();  // Always call the superclass method first
-      
       photoHandler = new Handler();
-   
-       // Get the Camera instance as the activity achieves full user focus
+      
+      // Get the Camera instance as the activity achieves full user focus
       if (cameraObject == null) {
          cameraObject = getAvailiableCamera(); // Local method to handle camera init
          cameraObject.startPreview();
