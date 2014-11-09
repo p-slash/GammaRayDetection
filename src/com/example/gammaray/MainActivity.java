@@ -19,7 +19,7 @@ import android.widget.FrameLayout;
 //import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER   = 100;
+   final static int PIC_NUMBER   = 10;
    final static int PIX_NUMBER   = 10;
    final static int NOISE_LENGTH = PIC_NUMBER * PIX_NUMBER;
    final static int SLEEP_TIME   = 500; // in ms
@@ -75,7 +75,7 @@ public class MainActivity extends Activity {
    // Calls SnapIt to save the photo, and later itself
    private Runnable startTakingPhotos = new Runnable() {
       private int counter = 0;         // to count how many pictures are taken
-      private Bitmap bmp;
+      private Bitmap bmp = null;
       private int index = 0;
       private int coord = 10;
       private byte noiseData[] = new byte[NOISE_LENGTH];
@@ -139,9 +139,12 @@ public class MainActivity extends Activity {
             FileOutputStream fos = new FileOutputStream(fout.getPath(), true);
             
             if (isTxt) {
-               fos.write(Integer.toString(PIX_NUMBER).getBytes());
+               fos.write(Integer.toString(PIC_NUMBER).getBytes());
                fos.write(",".getBytes());
                
+               fos.write(Integer.toString(PIX_NUMBER).getBytes());
+               fos.write(",".getBytes());
+
                for (byte a : data) {
                   fos.write(Byte.toString(a).getBytes());
                   fos.write(",".getBytes());
