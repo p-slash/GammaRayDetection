@@ -19,8 +19,6 @@ import android.widget.TextView;
 //import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int NOISE_MODE   = 0;
-   final static int EXP_MODE     = 1;
    final static int PIC_NUMBER   = 3;
    final static int SLEEP_TIME   = 500; // in ms
 
