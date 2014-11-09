@@ -167,11 +167,11 @@ public class MainActivity extends Activity {
             
             if (isTxt) {
                fos.write(Integer.toString(PIX_NUMBER).getBytes());
-               fos.write("\n".getBytes());
+               fos.write(",".getBytes());
                
                for (byte a : data) {
                   fos.write(Byte.toString(a).getBytes());
-                  fos.write("\n".getBytes());
+                  fos.write(",".getBytes());
                }
 
             }
