@@ -21,8 +21,8 @@ import android.widget.FrameLayout;
 public class MainActivity extends Activity {
    final static int PIC_NUMBER   = 100;
    final static int PIX_NUMBER   = 10;
-   final static int NOISE_LENGTH = PIC_NUMBER * PIX_NUMBER;
-   final static int SLEEP_TIME   = 500;            // in ms
+   final static int NOISE_LENGTH = PIC_NUMBER * PIX_NUMBER * 4;
+   final static int SLEEP_TIME   = 300;            // in ms
 
    private Camera cameraObject;
    private ShowCamera showCamera;
@@ -42,8 +42,8 @@ public class MainActivity extends Activity {
          
          params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);               // Set flash off
          params.setExposureCompensation(params.getMaxExposureCompensation()); // Set max exposure
-         params.setJpegQuality(100);                                                // Max jpeg quality
-         cameraObject.setParameters(params);                                        // Set parameters
+         params.setJpegQuality(100);                                          // Max jpeg quality
+         cameraObject.setParameters(params);                                  // Set parameters
 
          butEnable = true;
 
@@ -94,19 +94,24 @@ public class MainActivity extends Activity {
             return;
          }
 
-         index = counter * PIX_NUMBER;
+         index = counter * PIX_NUMBER * 4;
          coord = 10;
 
-         for (int i = 0; i < PIX_NUMBER; i++) {
+         for (int i = 0; i < PIX_NUMBER * 4; ) {
             coord += 50;
 
             // get red comp of the pixel
-            noiseData[index + i] = (byte)(Color.red(bmp.getPixel(coord , coord)));  
+            noiseData[index + i++]  = (byte)(Color.alpha(bmp.getPixel(coord , coord)));  
+            noiseData[index + i++]  = (byte)(Color.red(bmp.getPixel(coord , coord)));
+            noiseData[index + i++]  = (byte)(Color.green(bmp.getPixel(coord , coord)));
+            noiseData[index + i++]  = (byte)(Color.blue(bmp.getPixel(coord , coord)));
          }         
          
          // increase the number of pictures
          counter++;
-         
+
+         bmp = null;
+
          // save the last picture
          if (counter == PIC_NUMBER)
             saveFile(data);
