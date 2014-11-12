@@ -16,21 +16,24 @@ import android.app.Activity;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
-//import android.widget.Toast;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER   = 100;
-   final static int PIX_NUMBER   = 10;
-   final static int NOISE_LENGTH = PIC_NUMBER * PIX_NUMBER * 4;
-   final static int SLEEP_TIME   = 300;            // in ms
+   final static int PIC_NUMBER      = 100;
+   final static int SLEEP_TIME      = 300;         // in ms
+   final static int MAX_PIX_VALUE   = 50;
+   final static char in_lett = 'E';                // initial letter for file names
 
+   public static int[] allRData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
+   public static int[] allBData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
+   public static int[] allGData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
+   public static int counter       = 0;            // to count how many pictures are taken
+   
    private Camera cameraObject;
    private ShowCamera showCamera;
-   private Handler photoHandler = new Handler();   // To take consecutive photos
-   private boolean butEnable = false;              // disable start button if already taking pictures
+   private Handler photoHandler  = new Handler();   // To take consecutive photos
+   private boolean butEnable     = false;           // disable start button if already taking pictures
    
-   private static char in_lett = 'E';              // to distinguish noise and experimental files
-
    // Safely open the camera
    private boolean getAvailiableCamera() {
       cameraObject = null;
@@ -71,16 +74,21 @@ public class MainActivity extends Activity {
          butEnable = true;
 
          photoHandler.removeCallbacks(startTakingPhotos);
+
+         Toast.makeText(getApplicationContext(), "No of pic: " + counter, Toast.LENGTH_SHORT).show();
+         
+         saveHisto();
       }
    }
 
    // Calls SnapIt to save the photo, and later itself
-   private Runnable startTakingPhotos = new Runnable() {
-      private int counter = 0;         // to count how many pictures are taken
-      private Bitmap bmp = null;
-      private int index = 0;
-      private int coord = 10;
-      private byte noiseData[] = new byte[NOISE_LENGTH];
+   private Runnable startTakingPhotos = new Runnable() {      
+      private int i, j        = 0;      
+      private int bmpHeight   = 0;
+      private int bmpWidth    = 0;
+      private int pix_color;
+      private int r, g, b;
+      private Bitmap bmp      = null;
 
       private void doTheThing(byte[] data) {
          if (counter == PIC_NUMBER)
@@ -94,28 +102,44 @@ public class MainActivity extends Activity {
             return;
          }
 
-         index = counter * PIX_NUMBER * 4;
-         coord = 10;
+         if (bmpHeight == 0) {
+            bmpHeight   = bmp.getHeight();
+            bmpWidth    = bmp.getWidth();
+         }
 
-         for (int i = 0; i < PIX_NUMBER * 4; ) {
-            coord += 50;
+         for (i = 0; i < bmpWidth; i++) {
+            for (j = 0; j < bmpHeight; j++) {
+               
+               pix_color = bmp.getPixel(i, j);
 
-            // get red comp of the pixel
-            noiseData[index + i++]  = (byte)(Color.alpha(bmp.getPixel(coord , coord)));  
-            noiseData[index + i++]  = (byte)(Color.red(bmp.getPixel(coord , coord)));
-            noiseData[index + i++]  = (byte)(Color.green(bmp.getPixel(coord , coord)));
-            noiseData[index + i++]  = (byte)(Color.blue(bmp.getPixel(coord , coord)));
-         }         
+               r = Color.red(pix_color);
+               g = Color.green(pix_color);
+               b = Color.blue(pix_color);
+               
+               if (r > MAX_PIX_VALUE)              
+                  r = MAX_PIX_VALUE;
+
+               if (g > MAX_PIX_VALUE)
+                  g = MAX_PIX_VALUE;
+               
+               if (b > MAX_PIX_VALUE)
+                  b = MAX_PIX_VALUE;
+
+               allRData[r]++;
+               allGData[g]++;
+               allBData[b]++;
+            }
+         }
          
          // increase the number of pictures
          counter++;
 
          bmp = null;
 
-         // save the last picture
+         /* save the last picture
          if (counter == PIC_NUMBER)
             saveFile(data);
-         
+         */
          Log.d("DeadJim", "Number of pic:" + counter);
          return;
       }
@@ -131,8 +155,9 @@ public class MainActivity extends Activity {
 
       public void run() {
          if (counter == PIC_NUMBER) {                    // enough data
-            saveFile(noiseData);                         // save it
             photoHandler.removeCallbacks(this);
+            saveHisto();
+            Toast.makeText(getApplicationContext(), "Exp finished.", Toast.LENGTH_SHORT).show();
             return;
          }
 
@@ -143,7 +168,7 @@ public class MainActivity extends Activity {
       }
    };
 
-   private static boolean isExternalStorageWritable() {
+   public static boolean isExternalStorageWritable() {
       String state = Environment.getExternalStorageState();
 
       if (Environment.MEDIA_MOUNTED.equals(state))
@@ -153,7 +178,7 @@ public class MainActivity extends Activity {
    }
 
    // Create a File to save data. extension : .txt or .jpg
-   private static File getOutputFile(String extention){
+   public static File getOutputFile(String extention){
       // To be safe, you should check that the SDCard is mounted
       // using Environment.getExternalStorageState() before doing this.
       // Done by isExternalStorageWritable()
@@ -174,23 +199,20 @@ public class MainActivity extends Activity {
       String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
       File mFile = null;
 
+      if (extention == ".txt")
+         timeStamp = "pixelData";
+
       mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
            
       return mFile;
    }
 
-   private static boolean saveFile(byte[] data) {
+   public static boolean savePic(byte[] data) {
       // Check external storage
       if (!isExternalStorageWritable())    
          return false;
       
-      File fout;
-      boolean isTxt = (data.length == NOISE_LENGTH);  // true if we are going to save noiseData
-
-      if (isTxt)
-         fout = getOutputFile(".txt");
-      else
-         fout = getOutputFile(".jpg");
+      File fout = getOutputFile(".jpg");
 
       if (fout == null) {
          Log.d("DeadJim", "Error creating file, check storage permissions.");
@@ -199,22 +221,9 @@ public class MainActivity extends Activity {
 
       // Write data to fout
       try {        
-         FileOutputStream fos = new FileOutputStream(fout.getPath(), true);
+         FileOutputStream fos = new FileOutputStream(fout.getPath());
          
-         if (isTxt) {
-            fos.write(Integer.toString(PIC_NUMBER).getBytes());
-            fos.write(",".getBytes());
-
-            fos.write(Integer.toString(PIX_NUMBER).getBytes());               
-
-            for (byte a : data) {
-               fos.write(",".getBytes());
-               fos.write(Byte.toString(a).getBytes());
-            }
-
-         }
-         else
-            fos.write(data);
+         fos.write(data);
          
          fos.flush();
          fos.close();
@@ -230,7 +239,46 @@ public class MainActivity extends Activity {
 
       return true;
    }
+   
+   private static boolean saveHisto() {
+      // Check external storage
+      if (!isExternalStorageWritable())    
+         return false;
       
+      File fout = getOutputFile(".txt");
+
+      if (fout == null) {
+         Log.d("DeadJim", "Error creating file, check storage permissions.");
+         return false;
+      }
+      
+      // Write data to fout
+      try {               
+         PrintWriter pw = new PrintWriter(fout);
+         
+         pw.println(MAX_PIX_VALUE);
+         pw.println(counter);
+
+         for (int a : allRData)
+            pw.println(a);
+         
+         for (int a : allGData)
+            pw.println(a);
+
+         for (int a : allBData)
+            pw.println(a);
+
+         pw.flush();
+         pw.close();
+      } 
+      catch (FileNotFoundException e) {
+         Log.d("DeadJim", "File not found: " + e.getMessage());
+         return false;
+      } 
+
+      return true;
+   }
+
    @Override
    protected void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
@@ -249,6 +297,10 @@ public class MainActivity extends Activity {
       
       photoHandler.removeCallbacks(startTakingPhotos);
       photoHandler = null;
+
+      /* 
+       * Save noiseData
+       */
 
       // Release the Camera because we don't need it when paused
       // and other activities might need to use it.
