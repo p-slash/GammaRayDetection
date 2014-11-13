@@ -19,15 +19,15 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER      = 100;
-   final static int SLEEP_TIME      = 300;         // in ms
+   final static int PIC_NUMBER      = 10000;
+   final static int SLEEP_TIME      = 200;         // in ms
    final static int MAX_PIX_VALUE   = 50;
    final static char in_lett = 'E';                // initial letter for file names
 
    public static int[] allRData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
    public static int[] allBData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
    public static int[] allGData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
-   public static int counter       = 0;            // to count how many pictures are taken
+   public static int counter        = 0;            // to count how many pictures are taken
    
    private Camera cameraObject;
    private ShowCamera showCamera;
@@ -251,6 +251,15 @@ public class MainActivity extends Activity {
          Log.d("DeadJim", "Error creating file, check storage permissions.");
          return false;
       }
+      /*
+       * If file already exists, do sth
+      
+      if (fout.exists()) {
+         Scanner sc = new Scanner(fout);
+         if (sc.nextInt() == MAX_PIX_VALUE)
+            counter += sc.nextInt();
+      }
+      */
       
       // Write data to fout
       try {               
