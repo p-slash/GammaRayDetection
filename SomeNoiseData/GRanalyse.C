@@ -6,105 +6,55 @@
 #include "TStyle.h" // gStyle defined here
 
 using namespace std;
-int PIC_NUMBER = 0;
-int PIX_NUMBER = 0;
-int DataLength = 0;
+int PIC_NUMBER    = 0;
+int MAX_PIX_VALUE = 0;
+int DataLength    = 0;
 
 void histogramFill (int *Data, int Len) {
-	int k = 0;
-	char buffer[25];
+    int k, i;
+    int entries = 0;
+    const char *colors[] = {"Red", "Green", "Blue", "All"};
+    char buffer[30];
+    TH1I* hists[4];
 
-	// Start by setting ROOT histogram drawing options
-  	gStyle->SetOptStat(111110);  // show under/overflow when drawing histograms
-  	gStyle->SetOptFit(1111); // show fit parameters when drawing histograms
-  
-  	// Initialize the histograms
-    sprintf(buffer, "Noise of %d Pixels", PIX_NUMBER * 4);
-  	TH1I *hist_allall = new TH1I("AllPix", buffer, 18, -3, 15);
-
-    sprintf(buffer, "Noise of %d Alpha Pixels", PIX_NUMBER);
-    TH1I *hist_allalp = new TH1I("AllAlpha", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of %d Red Pixels", PIX_NUMBER);
-    TH1I *hist_allred = new TH1I("AllRed", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of %d Green Pixel", PIX_NUMBER);
-    TH1I *hist_allgre = new TH1I("AllGreen", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of %d Blue Pixel", PIX_NUMBER);
-    TH1I *hist_allblu = new TH1I("AllBlue", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of One Alpha Pixel");
-    TH1I *hist_onealp = new TH1I("OneAlpha", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of One Red Pixel");
-    TH1I *hist_onered = new TH1I("OneRed", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of One Blue Pixel");
-    TH1I *hist_onegre = new TH1I("OneGreen", buffer, 18, -3, 15);
-    
-    sprintf(buffer, "Noise of One Blue Pixel");
-    TH1I *hist_oneblu = new TH1I("OneBlue", buffer, 18, -3, 15);
-    
-	while (k < Len) {
-
-		hist_allall->Fill(Data[k]);
-        hist_allall->Fill(Data[k+1]);
-        hist_allall->Fill(Data[k+2]);
-        hist_allall->Fill(Data[k+3]);
-
-        hist_allalp->Fill(Data[k++]);
-
-        hist_allred->Fill(Data[k++]);
-        
-        hist_allgre->Fill(Data[k++]);
-        
-        hist_allblu->Fill(Data[k++]);
-    }
+    // Start by setting ROOT histogram drawing options
+    //gStyle->SetOptFit(1111); // show fit parameters when drawing histograms
 	
-    k = 0;
-
-    while ( k < Len) {
-        hist_onealp->Fill(Data[k++]);
-        hist_onered->Fill(Data[k++]);
-        hist_onegre->Fill(Data[k++]);
-        hist_oneblu->Fill(Data[k++]);
-        k += 36;
+    // Initialize the histograms
+    for (k = 0; k < 4; k++) {
+        sprintf(buffer, "Noise of %s Pixels", colors[k]);
+	    hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE + 1, 0, MAX_PIX_VALUE + 1);    
     }
-  
-    hist_allall->Draw();  
-	gPad->SaveAs("AllAllPix.pdf");
 
-    hist_allalp->Draw();
-    gPad->SaveAs("AllAlpha.pdf");
+    for (k = 1; k < Len; k++) {    
+        i = k / (MAX_PIX_VALUE + 1);
+        entries += Data[k];
+        hists[i]->AddBinContent( k - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[3]->AddBinContent( k - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+    }
 
-    hist_allred->Draw();
-    gPad->SaveAs("AllRed.pdf");
-
-    hist_allgre->Draw();
-    gPad->SaveAs("AllGreen.pdf");
-
-    hist_allblu->Draw();
-    gPad->SaveAs("AllBlue.pdf");
-
-    hist_onealp->Draw();
-    gPad->SaveAs("OneAlpha.pdf");
+    hists[3]->setEntries(entries);
+    hists[3]->Draw();
+    sprintf(buffer, "%s.pdf", colors[k]);  
+    gPad->SaveAs(buffer);
     
-    hist_onered->Draw();
-    gPad->SaveAs("OneRed.pdf");
+    entries /= 3;
 
-    hist_onegre->Draw();
-    gPad->SaveAs("OneGreen.pdf");
+    for (k = 0; k < 3; k++) {
+        hists[k]->setEntries(entries);
+        hists[k]->Draw();
+        sprintf(buffer, "%s.pdf", colors[k]);  
+        gPad->SaveAs(buffer);
+    }
+    
 
-    hist_oneblu->Draw();
-    gPad->SaveAs("OneBlue.pdf");
+
 }
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
 int main() {
 	FILE * toRead;
-	int *NPixData, temp, i, j; 
-	
+	int *NPixData, temp, i, j; 	
 
 	//Open the file for reading:
     toRead = fopen("pixelData.txt", "r");
@@ -115,9 +65,9 @@ int main() {
        return 0;
     }
 
-    fscanf(toRead, "%d,%d", &PIC_NUMBER, &PIX_NUMBER);
+    fscanf(toRead, "%d\n%d", &MAX_PIX_VALUE, &PIC_NUMBER);
 
-    DataLength 	= PIX_NUMBER * PIC_NUMBER * 4;
+    DataLength 	= (MAX_PIX_VALUE + 1) * 3;
 
     NPixData 	= (int*)malloc(DataLength*sizeof(int));
 
@@ -127,7 +77,7 @@ int main() {
     }
 
     i = 0;
-    while (fscanf(toRead, ",%d", &temp) != EOF)
+    while (fscanf(toRead, "%d\n", &temp) != EOF)
     	NPixData[i++] = temp;
 
     fclose(toRead);
@@ -136,7 +86,7 @@ int main() {
     
     delete[] NPixData;
 
-    NPixData    = NULL;
+    NPixData = NULL;
 
   	return 0;
 }
