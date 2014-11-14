@@ -19,10 +19,10 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER      = 10000;
+   final static int PIC_NUMBER      = 100;         // Bigger numbers take too much time and heat up the phone
    final static int SLEEP_TIME      = 200;         // in ms
    final static int MAX_PIX_VALUE   = 50;
-   final static char in_lett = 'E';                // initial letter for file names
+   final static char IN_LETT        = 'E';         // initial letter for file names
 
    public static int[] allRData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
    public static int[] allBData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
@@ -202,7 +202,7 @@ public class MainActivity extends Activity {
       if (extention == ".txt")
          timeStamp = "pixelData";
 
-      mFile = new File(mStorageDir.getPath() + File.separator +  in_lett + "_" + timeStamp + extention);
+      mFile = new File(mStorageDir.getPath() + File.separator +  IN_LETT + "_" + timeStamp + extention);
            
       return mFile;
    }
@@ -307,9 +307,7 @@ public class MainActivity extends Activity {
       photoHandler.removeCallbacks(startTakingPhotos);
       photoHandler = null;
 
-      /* 
-       * Save noiseData
-       */
+      saveHisto();
 
       // Release the Camera because we don't need it when paused
       // and other activities might need to use it.
