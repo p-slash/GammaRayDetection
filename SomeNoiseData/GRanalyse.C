@@ -13,7 +13,7 @@ int DataLength    = 0;
 void histogramFillAll (int *Data) {
     int k, i;
     //int entries = 0;
-    const char *colors[] = {"Red", "Green", "Blue", "All"};
+    const char* colors[] = {"Red", "Green", "Blue", "All"};
     char buffer[30];
     TH1I* hists[4];
 
@@ -43,37 +43,37 @@ void histogramFillAll (int *Data) {
     }
 }
 
-void histogramFillHigh(int *Data, int cutoff) {
-    int k, i;
+void histogramFillHigh(int *Data, int offset) {
     const char* colors[] = {"Red", "Green", "Blue", "All"};
+    int k, i;
     char buffer[60];
-    TH1I* hists2[4];
+    TH1I* hists[4];
 
     // Start by setting ROOT histogram drawing options
     gStyle->SetOptFit(1111); // show fit parameters when drawing histograms
     
     // Initialize the histograms
     for (k = 0; k < 4; k++) {
-        sprintf(buffer, "Noise of %s Pixels Start Value: %d", colors[k], cutoff);
-        hists2[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE - cutoff + 1, cutoff, MAX_PIX_VALUE + 1);    
+        sprintf(buffer, "Noise of %s Pixels Start Value: %d", colors[k], offset);
+        hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE - offset + 1, offset, MAX_PIX_VALUE + 1);    
     }
 
-    for (k = cutoff; k < DataLength; k++) {    
+    for (k = offset; k < DataLength; k++) {    
         i = k / (MAX_PIX_VALUE + 1);
         
-        if (((k - cutoff) - (i * (MAX_PIX_VALUE + 1))) < 0)
-            k += cutoff;
+        if (((k - offset) - (i * (MAX_PIX_VALUE + 1))) < 0)
+            k += offset;
 
-        hists2[i]->AddBinContent((k - cutoff) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
-        hists2[3]->AddBinContent((k - cutoff) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[i]->AddBinContent((k - offset) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[3]->AddBinContent((k - offset) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
     }
 
     for (k = 0; k < 4; k++) {
-        hists2[k]->Draw();
-        sprintf(buffer, "%s_%d.pdf", colors[k], cutoff);  
+        hists[k]->Draw();
+        sprintf(buffer, "%s_%d.pdf", colors[k], offset);  
         gPad->SaveAs(buffer);
 
-        hists2[k]->~TH1I();
+        hists[k]->~TH1I();
     }
 }
 
@@ -91,7 +91,7 @@ int main() {
        return 0;
     }
 
-    fscanf(toRead, "%d\n%d", &MAX_PIX_VALUE, &PIC_NUMBER);
+    fscanf(toRead, "%d\n%d\n", &MAX_PIX_VALUE, &PIC_NUMBER);
 
     DataLength 	= (MAX_PIX_VALUE + 1) * 3;
 
@@ -110,6 +110,8 @@ int main() {
     
     histogramFillAll(NPixData);
     histogramFillHigh(NPixData, 20);
+    histogramFillHigh(NPixData, 25);
+    histogramFillHigh(NPixData, 30);
 
     delete[] NPixData;
 
