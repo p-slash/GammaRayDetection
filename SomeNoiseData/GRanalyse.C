@@ -18,7 +18,8 @@ void histogramFillAll (int *Data) {
     TH1I* hists[4];
 
     // Start by setting ROOT histogram drawing options
-    //gStyle->SetOptFit(1111); // show fit parameters when drawing histograms
+    gStyle->SetOptStat(111110);  // show under/overflow when drawing histograms
+    gStyle->SetOptFit(1111); // show fit parameters when drawing histograms
 	
     // Initialize the histograms
     for (k = 0; k < 4; k++) {
@@ -26,11 +27,11 @@ void histogramFillAll (int *Data) {
 	    hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE + 1, 0, MAX_PIX_VALUE + 1);    
     }
 
-    for (k = 1; k < DataLength; k++) {    
+    for (k = 0; k < DataLength; k++) {    
         i = k / (MAX_PIX_VALUE + 1);
         //entries += Data[k];
-        hists[i]->AddBinContent( k - (i * (MAX_PIX_VALUE + 1)), Data[k]);
-        hists[3]->AddBinContent( k - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[i]->SetBinContent((k + 1) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[3]->SetBinContent((k + 1) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
     }
 
     for (k = 0; k < 4; k++) {
@@ -50,6 +51,7 @@ void histogramFillHigh(int *Data, int offset) {
     TH1I* hists[4];
 
     // Start by setting ROOT histogram drawing options
+    gStyle->SetOptStat(111110);  // show under/overflow when drawing histograms
     gStyle->SetOptFit(1111); // show fit parameters when drawing histograms
     
     // Initialize the histograms
@@ -64,8 +66,8 @@ void histogramFillHigh(int *Data, int offset) {
         if (((k - offset) - (i * (MAX_PIX_VALUE + 1))) < 0)
             k += offset;
 
-        hists[i]->AddBinContent((k - offset) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
-        hists[3]->AddBinContent((k - offset) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[i]->SetBinContent((k + 1 - offset) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
+        hists[3]->SetBinContent((k + 1 - offset) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
     }
 
     for (k = 0; k < 4; k++) {
