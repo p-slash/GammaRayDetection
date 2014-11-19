@@ -10,7 +10,7 @@ int PIC_NUMBER    = 0;
 int MAX_PIX_VALUE = 0;
 int DataLength    = 0;
 
-void histogramFillAll (int *Data) {
+void histogramFillAll (long int *Data) {
     int k, i;
     //int entries = 0;
     const char* colors[] = {"Red", "Green", "Blue", "All"};
@@ -44,7 +44,7 @@ void histogramFillAll (int *Data) {
     }
 }
 
-void histogramFillHigh(int *Data, int offset) {
+void histogramFillHigh(long int *Data, int offset) {
     const char* colors[] = {"Red", "Green", "Blue", "All"};
     int k, i;
     char buffer[60];
@@ -79,7 +79,7 @@ void histogramFillHigh(int *Data, int offset) {
     }
 }
 
-int ReadData(const char* fname, int *NPixData) {
+int ReadData(const char* fname, int *aData) {
     FILE* toRead;
     int temp, i, j;
 
@@ -96,48 +96,53 @@ int ReadData(const char* fname, int *NPixData) {
 
     DataLength  = (MAX_PIX_VALUE + 1) * 3;
 
-    NPixData    = (int*)malloc(DataLength*sizeof(int));
+    aData    = (int*)malloc(DataLength*sizeof(int));
 
-    if(NPixData == NULL) {
+    if(aData == NULL) {
         cout << "Mem error\n" << endl;
         return 0;
     }
 
     i = 0;
     while (fscanf(toRead, "%d\n", &temp) != EOF)
-        NPixData[i++] = temp;
+        aData[i++] = temp;
 
     fclose(toRead);
 
     return 1;
 }
 
-int combineTwoFiles(const char* fname1, const char* fname2, int* NData) {
-    int *n1Data, *n2Data, len, i;
-    
+int combineTwoFiles(const char* fname1, const char* fname2, long int *NData) {
+    int *n1Data, *n2Data;
+    int i = 0;
+
+
     if (!ReadData(fname1, n1Data))
         return 0;
     
     if (!ReadData(fname2, n2Data))
         return 0;
-
-    NData    = (int*)malloc(DataLength*sizeof(int));
-
+   
+    NData    = (long int*)malloc(DataLength*sizeof(long int));
+   
     if(NData == NULL)
         return 0;
 
-    for(i = 0; i < DataLength; i++)
+    for(i = 0; i < DataLength; i++) {
+    	cout << n2Data[i]<< endl;
         NData[i]    = n1Data[i] + n2Data[i];
+        
+    }
 
     return 1;
 }
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
 int main() {
-	int* NPixData;
+	long int *NPixData;
 		
-    ReadData("pixelData.txt", NPixData);
-	
+    if(!combineTwoFiles("E_pixelData2.txt", "E_pixelData3.txt", NPixData))
+    	return 0;	
     
     histogramFillAll(NPixData);
     histogramFillHigh(NPixData, 20);

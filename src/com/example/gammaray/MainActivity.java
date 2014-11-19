@@ -19,10 +19,10 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER      = 100;         // Bigger numbers take too much time and heat up the phone
-   final static int SLEEP_TIME      = 200;         // in ms
+   final static int PIC_NUMBER      = 1000;  // Bigger numbers take too much time and heat up the phone
+   final static int SLEEP_TIME      = 1000;  // in ms
    final static int MAX_PIX_VALUE   = 50;
-   final static char IN_LETT        = 'E';         // initial letter for file names
+   final static char IN_LETT        = 'E';   // initial letter for file names
 
    public static int[] allRData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
    public static int[] allBData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
@@ -154,6 +154,7 @@ public class MainActivity extends Activity {
       };
 
       public void run() {
+         Log.d("DeadJim", "sta");
          if (counter == PIC_NUMBER) {                    // enough data
             photoHandler.removeCallbacks(this);
             saveHisto();
@@ -163,7 +164,7 @@ public class MainActivity extends Activity {
 
          cameraObject.takePicture(null, null, SnapIt);
          cameraObject.startPreview();         
-         
+         Log.d("DeadJim", "fin");
          photoHandler.postDelayed(this, SLEEP_TIME);     // run this again SLEEP_TIME after
       }
    };
