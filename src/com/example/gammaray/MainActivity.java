@@ -19,7 +19,7 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER      = 1000;  // Bigger numbers take too much time and heat up the phone
+   final static int PIC_NUMBER      = 100;  // Bigger numbers take too much time and heat up the phone
    final static int SLEEP_TIME      = 1000;  // in ms
    final static int MAX_PIX_VALUE   = 50;
    final static char IN_LETT        = 'E';   // initial letter for file names

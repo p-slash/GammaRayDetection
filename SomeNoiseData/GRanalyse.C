@@ -7,8 +7,8 @@
 
 using namespace std;
 int PIC_NUMBER    = 0;
-int MAX_PIX_VALUE = 0;
-int DataLength    = 0;
+const int MAX_PIX_VALUE = 50;
+const int DataLength    = 153;
 
 void histogramFillAll (int *Data) {
     int k, i;
@@ -36,8 +36,11 @@ void histogramFillAll (int *Data) {
 
     for (k = 0; k < 4; k++) {
         //hists[k]->setEntries(entries);
+        
         hists[k]->Draw();
+        
         sprintf(buffer, "%s.pdf", colors[k]);  
+        gPad->SetLogy();
         gPad->SaveAs(buffer);
 
         hists[k]->~TH1I();
@@ -79,9 +82,9 @@ void histogramFillHigh(int *Data, int offset) {
     }
 }
 
-int ReadData(const char* fname, int *NPixData) {
+int ReadData(const char* fname, int* NData) {
     FILE* toRead;
-    int temp, i, j;
+    int temp, i, mpv;
 
     //Open the file for reading:
     toRead = fopen(fname, "r");
@@ -92,26 +95,25 @@ int ReadData(const char* fname, int *NPixData) {
        return 0;
     }
 
-    fscanf(toRead, "%d\n%d\n", &MAX_PIX_VALUE, &PIC_NUMBER);
+    fscanf(toRead, "%d\n%d\n", &mpv, &PIC_NUMBER);
 
-    DataLength  = (MAX_PIX_VALUE + 1) * 3;
+    if (mpv != MAX_PIX_VALUE)
+        return 0;
 
-    NPixData    = (int*)malloc(DataLength*sizeof(int));
-
-    if(NPixData == NULL) {
+    if(NData == NULL) {
         cout << "Mem error\n" << endl;
         return 0;
     }
 
     i = 0;
     while (fscanf(toRead, "%d\n", &temp) != EOF)
-        NPixData[i++] = temp;
+        NData[i++] = temp;
 
     fclose(toRead);
 
     return 1;
 }
-
+/*
 int combineTwoFiles(const char* fname1, const char* fname2, int* NData) {
     int *n1Data, *n2Data, len, i;
     
@@ -131,13 +133,15 @@ int combineTwoFiles(const char* fname1, const char* fname2, int* NData) {
 
     return 1;
 }
-
+*/
 #if !defined(__CINT__) || defined(__MAKECINT__)
 int main() {
 	int* NPixData;
-		
-    ReadData("pixelData.txt", NPixData);
 	
+    NPixData    = (int*)malloc(DataLength*sizeof(int));
+    
+    if(!ReadData("pixelData.txt", NPixData))
+        return 0;
     
     histogramFillAll(NPixData);
     histogramFillHigh(NPixData, 20);
