@@ -6,14 +6,15 @@
 #include "TStyle.h" // gStyle defined here
 
 using namespace std;
-int PIC_NUMBER    = 0;
+
 const int MAX_PIX_VALUE = 50;
 const int DataLength    = 153;
+const char* colors[] = {"Red", "Green", "Blue", "All"};
+
+int PIC_NUMBER    = 0;
 
 void histogramFillAll (int *Data) {
-    int k, i;
-    //int entries = 0;
-    const char* colors[] = {"Red", "Green", "Blue", "All"};
+    int k, i;    
     char buffer[30];
     TH1I* hists[4];
 
@@ -24,22 +25,22 @@ void histogramFillAll (int *Data) {
     // Initialize the histograms
     for (k = 0; k < 4; k++) {
         sprintf(buffer, "Noise of %s Pixels", colors[k]);
+
 	    hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE + 1, 0, MAX_PIX_VALUE + 1);    
     }
 
     for (k = 0; k < DataLength; k++) {    
         i = k / (MAX_PIX_VALUE + 1);
-        //entries += Data[k];
+
         hists[i]->SetBinContent((k + 1) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
         hists[3]->SetBinContent((k + 1) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
     }
 
-    for (k = 0; k < 4; k++) {
-        //hists[k]->setEntries(entries);
-        
+    for (k = 0; k < 4; k++) {        
         hists[k]->Draw();
         
-        sprintf(buffer, "%s.pdf", colors[k]);  
+        sprintf(buffer, "%s.pdf", colors[k]);
+
         gPad->SetLogy();
         gPad->SaveAs(buffer);
 
@@ -48,7 +49,6 @@ void histogramFillAll (int *Data) {
 }
 
 void histogramFillHigh(int *Data, int offset) {
-    const char* colors[] = {"Red", "Green", "Blue", "All"};
     int k, i;
     char buffer[60];
     TH1I* hists[4];
@@ -60,6 +60,7 @@ void histogramFillHigh(int *Data, int offset) {
     // Initialize the histograms
     for (k = 0; k < 4; k++) {
         sprintf(buffer, "Noise of %s Pixels Start Value: %d", colors[k], offset);
+
         hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE - offset + 1, offset, MAX_PIX_VALUE + 1);    
     }
 
@@ -75,7 +76,9 @@ void histogramFillHigh(int *Data, int offset) {
 
     for (k = 0; k < 4; k++) {
         hists[k]->Draw();
-        sprintf(buffer, "%s_%d.pdf", colors[k], offset);  
+
+        sprintf(buffer, "%s_%d.pdf", colors[k], offset); 
+
         gPad->SaveAs(buffer);
 
         hists[k]->~TH1I();
@@ -84,9 +87,8 @@ void histogramFillHigh(int *Data, int offset) {
 
 int ReadData(const char* fname, int* NData) {
     FILE* toRead;
-    int temp, i, mpv;
+    int temp, i;
 
-    //Open the file for reading:
     toRead = fopen(fname, "r");
 
     if (toRead == NULL) {
@@ -95,13 +97,10 @@ int ReadData(const char* fname, int* NData) {
        return 0;
     }
 
-    fscanf(toRead, "%d\n%d\n", &mpv, &PIC_NUMBER);
+    fscanf(toRead, "%d\n%d\n", &temp, &PIC_NUMBER);
 
-    if (mpv != MAX_PIX_VALUE)
-        return 0;
-
-    if(NData == NULL) {
-        cout << "Mem error\n" << endl;
+    if (temp != MAX_PIX_VALUE) {
+        cout << "Incompatible MAX_PIX_VALUE\n";
         return 0;
     }
 
@@ -140,7 +139,12 @@ int main() {
 	
     NPixData    = (int*)malloc(DataLength*sizeof(int));
     
-    if(!ReadData("pixelData.txt", NPixData))
+    if (NPixData == NULL) {
+        cout << "Mem error\n" << endl;
+        return 0;
+    }
+
+    if (!ReadData("pixelData.txt", NPixData))
         return 0;
     
     histogramFillAll(NPixData);
