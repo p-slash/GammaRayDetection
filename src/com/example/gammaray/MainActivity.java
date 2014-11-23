@@ -294,6 +294,9 @@ public class MainActivity extends Activity {
       super.onCreate(savedInstanceState);
       setContentView(R.layout.activity_main);
 
+      // Prevent screen from turning off
+      getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
       getAvailiableCamera();
       
       showCamera = new ShowCamera(this, cameraObject);
