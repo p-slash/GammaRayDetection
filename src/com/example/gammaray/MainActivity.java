@@ -15,13 +15,14 @@ import android.os.Handler;
 import android.app.Activity;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER      = 100;  // Bigger numbers take too much time and heat up the phone
+   final static int PIC_NUMBER      = 1000;  // Bigger numbers take too much time and heat up the phone
    final static int SLEEP_TIME      = 1000;  // in ms
-   final static int MAX_PIX_VALUE   = 50;
+   final static int MAX_PIX_VALUE   = 255;
    final static char IN_LETT        = 'E';   // initial letter for file names
 
    public static int[] allRData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
@@ -115,7 +116,8 @@ public class MainActivity extends Activity {
                r = Color.red(pix_color);
                g = Color.green(pix_color);
                b = Color.blue(pix_color);
-               
+
+               /* MAX_PIX_VALUE = 255
                if (r > MAX_PIX_VALUE)              
                   r = MAX_PIX_VALUE;
 
@@ -124,7 +126,7 @@ public class MainActivity extends Activity {
                
                if (b > MAX_PIX_VALUE)
                   b = MAX_PIX_VALUE;
-
+               */
                allRData[r]++;
                allGData[g]++;
                allBData[b]++;
@@ -154,7 +156,7 @@ public class MainActivity extends Activity {
       };
 
       public void run() {
-         Log.d("DeadJim", "sta");
+         //Log.d("DeadJim", "sta");
          if (counter == PIC_NUMBER) {                    // enough data
             photoHandler.removeCallbacks(this);
             saveHisto();
@@ -164,7 +166,7 @@ public class MainActivity extends Activity {
 
          cameraObject.takePicture(null, null, SnapIt);
          cameraObject.startPreview();         
-         Log.d("DeadJim", "fin");
+         //Log.d("DeadJim", "fin");
          photoHandler.postDelayed(this, SLEEP_TIME);     // run this again SLEEP_TIME after
       }
    };
