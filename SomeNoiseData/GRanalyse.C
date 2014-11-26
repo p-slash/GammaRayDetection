@@ -8,8 +8,8 @@
 using namespace std;
 
 const int MAX_PIX_VALUE = 50;
-const int DataLength    = 153;
-const char* colors[] = {"Red", "Green", "Blue", "All"};
+const int DATA_LENGTH   = 153;
+const char* COLORS[] = {"Red", "Green", "Blue", "All"};
 
 int PIC_NUMBER    = 0;
 
@@ -24,12 +24,12 @@ void histogramFillAll (int *Data) {
 	
     // Initialize the histograms
     for (k = 0; k < 4; k++) {
-        sprintf(buffer, "Noise of %s Pixels", colors[k]);
+        sprintf(buffer, "Noise of %s Pixels", COLORS[k]);
 
-	    hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE + 1, 0, MAX_PIX_VALUE + 1);    
+	    hists[k] = new TH1I(COLORS[k], buffer, MAX_PIX_VALUE + 1, 0, MAX_PIX_VALUE + 1);    
     }
 
-    for (k = 0; k < DataLength; k++) {    
+    for (k = 0; k < DATA_LENGTH; k++) {    
         i = k / (MAX_PIX_VALUE + 1);
 
         hists[i]->SetBinContent((k + 1) - (i * (MAX_PIX_VALUE + 1)), Data[k]);
@@ -39,7 +39,7 @@ void histogramFillAll (int *Data) {
     for (k = 0; k < 4; k++) {        
         hists[k]->Draw();
         
-        sprintf(buffer, "%s.pdf", colors[k]);
+        sprintf(buffer, "%s.pdf", COLORS[k]);
 
         gPad->SetLogy();
         gPad->SaveAs(buffer);
@@ -59,12 +59,12 @@ void histogramFillHigh(int *Data, int offset) {
     
     // Initialize the histograms
     for (k = 0; k < 4; k++) {
-        sprintf(buffer, "Noise of %s Pixels Start Value: %d", colors[k], offset);
+        sprintf(buffer, "Noise of %s Pixels Start Value: %d", COLORS[k], offset);
 
-        hists[k] = new TH1I(colors[k], buffer, MAX_PIX_VALUE - offset + 1, offset, MAX_PIX_VALUE + 1);    
+        hists[k] = new TH1I(COLORS[k], buffer, MAX_PIX_VALUE - offset + 1, offset, MAX_PIX_VALUE + 1);    
     }
 
-    for (k = offset; k < DataLength; k++) {    
+    for (k = offset; k < DATA_LENGTH; k++) {    
         i = k / (MAX_PIX_VALUE + 1);
         
         if (((k - offset) - (i * (MAX_PIX_VALUE + 1))) < 0)
@@ -77,7 +77,7 @@ void histogramFillHigh(int *Data, int offset) {
     for (k = 0; k < 4; k++) {
         hists[k]->Draw();
 
-        sprintf(buffer, "%s_%d.pdf", colors[k], offset); 
+        sprintf(buffer, "%s_%d.pdf", COLORS[k], offset); 
 
         gPad->SaveAs(buffer);
 
@@ -122,12 +122,12 @@ int combineTwoFiles(const char* fname1, const char* fname2, int* NData) {
     if (!ReadData(fname2, n2Data))
         return 0;
 
-    NData    = (int*)malloc(DataLength*sizeof(int));
+    NData    = (int*)malloc(DATA_LENGTH*sizeof(int));
 
     if(NData == NULL)
         return 0;
 
-    for(i = 0; i < DataLength; i++)
+    for(i = 0; i < DATA_LENGTH; i++)
         NData[i]    = n1Data[i] + n2Data[i];
 
     return 1;
@@ -137,7 +137,7 @@ int combineTwoFiles(const char* fname1, const char* fname2, int* NData) {
 int main() {
 	int* NPixData;
 	
-    NPixData    = (int*)malloc(DataLength*sizeof(int));
+    NPixData    = (int*)malloc(DATA_LENGTH*sizeof(int));
     
     if (NPixData == NULL) {
         cout << "Mem error\n" << endl;
