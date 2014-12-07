@@ -16,20 +16,33 @@ import android.app.Activity;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-   final static int PIC_NUMBER      = 1000;  // Bigger numbers take too much time and heat up the phone
-   final static int SLEEP_TIME      = 1000;  // in ms
-   final static int MAX_PIX_VALUE   = 255;
-   final static char IN_LETT        = 'E';   // initial letter for file names
+   // Settings
+   final  static int SLEEP_TIME   = 1000;  // in ms
+   final  static int MAX_PIX_VALUE= 255;
+   public static int C_PIC_NUMBER = 10;
 
-   public static int[] allRData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
-   public static int[] allBData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
-   public static int[] allGData     = new int[MAX_PIX_VALUE + 1]; // Java initialize to 0 itself
-   public static int counter        = 0;            // to count how many pictures are taken
-   
+   // Change with text
+   public static int PIC_NUMBER  = 50;  // Bigger numbers take too much time and heat up the phone
+   public static int THRESHOLD   = 55;
+   public static boolean hMode   = false;
+
+   public static int pic_counter;   // to count how many pictures are taken
+   public static int gam_counter;   // to count how many gamma ray signals detected
+   public static Bitmap combinedPic;
+   public static int[] histoData;
+
+   public static TextView outText;
+   private EditText picNoText;
+   private EditText thText;
+   private EditText combText;
+   private CheckBox histoMode;
    private Camera cameraObject;
    private ShowCamera showCamera;
    private Handler photoHandler  = new Handler();   // To take consecutive photos
@@ -53,7 +66,7 @@ public class MainActivity extends Activity {
 
          return true;
       }
-      catch (Exception e){
+      catch (Exception e) {
          butEnable = false;
          Log.e("DeadJim", "Error in camera", e);
       }
@@ -63,7 +76,19 @@ public class MainActivity extends Activity {
 
    // Starting experiment, linked to Start Button
    public void StartIt(View view){
-      if ((cameraObject != null) && butEnable) {
+      PIC_NUMBER  = Integer.parseInt(picNoText.getText().toString());
+      THRESHOLD   = Integer.parseInt(thText.getText().toString());
+      C_PIC_NUMBER= Integer.parseInt(combText.getText().toString());
+      hMode       = histoMode.isChecked();
+
+      if ((cameraObject != null) && butEnable && (PIC_NUMBER != 0) && (THRESHOLD < 255) && (C_PIC_NUMBER != 0)) {
+         pic_counter = 0;
+         gam_counter = 0;
+         combinedPic = null;
+         
+         if (hMode)
+            histoData = new int[MAX_PIX_VALUE + 1];
+
          photoHandler.postDelayed(startTakingPhotos, 0);
 
          butEnable = false;
@@ -76,77 +101,84 @@ public class MainActivity extends Activity {
 
          photoHandler.removeCallbacks(startTakingPhotos);
 
-         Toast.makeText(getApplicationContext(), "No of pic: " + counter, Toast.LENGTH_SHORT).show();
+         //Toast.makeText(getApplicationContext(), "No of gamma: " + gam_counter, Toast.LENGTH_LONG).show();
          
-         saveHisto();
+         saveGamma();
       }
    }
 
    // Calls SnapIt to save the photo, and later itself
-   private Runnable startTakingPhotos = new Runnable() {      
-      private int i, j        = 0;      
+   private Runnable startTakingPhotos = new Runnable() {            
       private int bmpHeight   = 0;
       private int bmpWidth    = 0;
       private int pix_color;
       private int r, g, b;
+      private int i, j;
       private Bitmap bmp      = null;
 
       private void doTheThing(byte[] data) {
-         if (counter == PIC_NUMBER)
+         if (pic_counter == PIC_NUMBER)
             return;
 
          bmp = BitmapFactory.decodeByteArray(data , 0, data.length);
 
          // not successful, capture another photo
-         if (bmp == null) {   
-            counter--;
+         if (bmp == null)
             return;
-         }
 
          if (bmpHeight == 0) {
             bmpHeight   = bmp.getHeight();
             bmpWidth    = bmp.getWidth();
          }
 
+         if (combinedPic == null)
+            combinedPic = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
+
          for (i = 0; i < bmpWidth; i++) {
             for (j = 0; j < bmpHeight; j++) {
                
-               pix_color = bmp.getPixel(i, j);
+               pix_color  = bmp.getPixel(i, j);
 
                r = Color.red(pix_color);
                g = Color.green(pix_color);
                b = Color.blue(pix_color);
 
-               /* MAX_PIX_VALUE = 255
-               if (r > MAX_PIX_VALUE)              
-                  r = MAX_PIX_VALUE;
+               if (r > THRESHOLD || b > THRESHOLD || g > THRESHOLD)
+                  combinedPic.setPixel(i, j, pix_color);
+                  
+               if (r > THRESHOLD)
+                  gam_counter++;
+               if (b > THRESHOLD)
+                  gam_counter++;
+               if (g > THRESHOLD)
+                  gam_counter++;
 
-               if (g > MAX_PIX_VALUE)
-                  g = MAX_PIX_VALUE;
-               
-               if (b > MAX_PIX_VALUE)
-                  b = MAX_PIX_VALUE;
-               */
-               allRData[r]++;
-               allGData[g]++;
-               allBData[b]++;
+               if (hMode) {
+                  histoData[r]++;
+                  histoData[g]++;
+                  histoData[b]++;
+               }
             }
          }
          
          // increase the number of pictures
-         counter++;
+         pic_counter++;
+
+         // Save combined picture after every C_PIC_NUMBER of pictures
+         if (pic_counter%C_PIC_NUMBER == 0) {
+            savePic(combinedPic);
+            combinedPic = null;
+            Log.d("DeadJim", "Combined picture saved.");
+         }
 
          bmp = null;
 
-         /* save the last picture
-         if (counter == PIC_NUMBER)
-            saveFile(data);
-         */
-         Log.d("DeadJim", "Number of pic:" + counter);
+         Toast.makeText(getApplicationContext(), "Picture:" + pic_counter, Toast.LENGTH_SHORT).show();
+         Log.d("DeadJim", "Number of pic:" + pic_counter);
          return;
       }
       
-      // Called after capturing the photo. Creates a asynctask to manage data.
+      // Called after capturing the photo. Creates a handler to manage data.
       private PictureCallback SnapIt = new PictureCallback() {
          @Override
          public void onPictureTaken(byte[] data, Camera camera) {
@@ -156,17 +188,18 @@ public class MainActivity extends Activity {
       };
 
       public void run() {
-         //Log.d("DeadJim", "sta");
-         if (counter == PIC_NUMBER) {                    // enough data
+         if (pic_counter == PIC_NUMBER) {                    // stop
             photoHandler.removeCallbacks(this);
-            saveHisto();
-            Toast.makeText(getApplicationContext(), "Exp finished.", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(getApplicationContext(), "Exp finished: " + gam_counter, Toast.LENGTH_LONG).show();
+
+            saveGamma();
             return;
          }
 
          cameraObject.takePicture(null, null, SnapIt);
          cameraObject.startPreview();         
-         //Log.d("DeadJim", "fin");
+         
          photoHandler.postDelayed(this, SLEEP_TIME);     // run this again SLEEP_TIME after
       }
    };
@@ -200,22 +233,23 @@ public class MainActivity extends Activity {
 
       // Create a file name
       String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+
       File mFile = null;
 
       if (extention == ".txt")
-         timeStamp = "pixelData";
+         timeStamp = "SomeNumbers_" + timeStamp;
 
-      mFile = new File(mStorageDir.getPath() + File.separator +  IN_LETT + "_" + timeStamp + extention);
+      mFile = new File(mStorageDir.getPath() + File.separator +  "CombinedPicture_" + timeStamp + extention);
            
       return mFile;
    }
 
-   public static boolean savePic(byte[] data) {
+   public static boolean savePic(Bitmap data) {
       // Check external storage
       if (!isExternalStorageWritable())    
          return false;
       
-      File fout = getOutputFile(".jpg");
+      File fout = getOutputFile(".png");
 
       if (fout == null) {
          Log.d("DeadJim", "Error creating file, check storage permissions.");
@@ -226,7 +260,7 @@ public class MainActivity extends Activity {
       try {        
          FileOutputStream fos = new FileOutputStream(fout.getPath());
          
-         fos.write(data);
+         data.compress(Bitmap.CompressFormat.PNG, 100, fos);
          
          fos.flush();
          fos.close();
@@ -242,8 +276,15 @@ public class MainActivity extends Activity {
 
       return true;
    }
-   
-   private static boolean saveHisto() {
+
+   private static boolean saveGamma() {
+      String msg = "Detection finished.\n";
+      msg += "Pictures taken: " + pic_counter + "\n";
+      msg += "Combined pictures: " + Math.floor(pic_counter/C_PIC_NUMBER) + "\n";
+      msg += "Possible gamma signals: " + gam_counter;
+      
+      outText.setText(msg);
+
       // Check external storage
       if (!isExternalStorageWritable())    
          return false;
@@ -254,31 +295,19 @@ public class MainActivity extends Activity {
          Log.d("DeadJim", "Error creating file, check storage permissions.");
          return false;
       }
-      /*
-       * If file already exists, do sth
-      
-      if (fout.exists()) {
-         Scanner sc = new Scanner(fout);
-         if (sc.nextInt() == MAX_PIX_VALUE)
-            counter += sc.nextInt();
-      }
-      */
       
       // Write data to fout
       try {               
          PrintWriter pw = new PrintWriter(fout);
-         
-         pw.println(MAX_PIX_VALUE);
-         pw.println(counter);
 
-         for (int a : allRData)
-            pw.println(a);
-         
-         for (int a : allGData)
-            pw.println(a);
+         pw.println(msg);
 
-         for (int a : allBData)
-            pw.println(a);
+         if (hMode) {
+            pw.println("Histogram starts below from 0 to 255 pixel values.");
+
+            for (int a : histoData)
+               pw.println(a);
+         }
 
          pw.flush();
          pw.close();
@@ -299,6 +328,12 @@ public class MainActivity extends Activity {
       // Prevent screen from turning off
       getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+      picNoText   = (EditText) findViewById(R.id.pic_no);
+      thText      = (EditText) findViewById(R.id.threshold);
+      combText    = (EditText) findViewById(R.id.cmb_no);
+      outText     = (TextView) findViewById(R.id.outText);
+      histoMode   = (CheckBox) findViewById(R.id.histo_mode);
+
       getAvailiableCamera();
       
       showCamera = new ShowCamera(this, cameraObject);
@@ -313,7 +348,7 @@ public class MainActivity extends Activity {
       photoHandler.removeCallbacks(startTakingPhotos);
       photoHandler = null;
 
-      saveHisto();
+      //saveHisto();
 
       // Release the Camera because we don't need it when paused
       // and other activities might need to use it.
