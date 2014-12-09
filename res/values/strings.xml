@@ -4,7 +4,7 @@
    <string name="app_name">Gamma Ray Detection</string>
    <string name="action_settings">Settings</string>
    <string name="Start">Start</string>
-   <string name="Stop">Pause</string>
+   <string name="Stop">Stop</string>
    <string name="threshold_hint">55</string>
    <string name="number_hint">50</string>
    <string name="comb_hint">10</string>
