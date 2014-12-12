@@ -37,6 +37,8 @@ public class MainActivity extends Activity {
    public static int gam_counter;   // to count how many gamma ray signals detected
    public static Bitmap combinedPic;
    public static int[] histoData;
+   public static File fPixOut = null;           // to write the location and the value of the pixels that are above threshold
+   public static PrintWriter pwPixOut = null;
 
    public static TextView outText;
    private EditText picNoText;
@@ -85,6 +87,26 @@ public class MainActivity extends Activity {
          pic_counter = 0;
          gam_counter = 0;
          combinedPic = null;
+
+         // Check external storage
+         if (!isExternalStorageWritable())    
+            return;
+         
+         fPixOut = getOutputFile("PixList.txt");
+
+         if (fPixOut == null) {
+            outText.setText("Error creating file");
+            Log.d("DeadJim", "Error creating file, check storage permissions.");
+            return;
+         }
+         
+         try {              
+            pwPixOut = new PrintWriter(fPixOut); 
+         }
+         catch (FileNotFoundException e) {
+            Log.d("DeadJim", "File not found: " + e.getMessage());
+            return;
+         } 
          
          if (hMode)
             histoData = new int[MAX_PIX_VALUE + 1];
@@ -104,6 +126,8 @@ public class MainActivity extends Activity {
          //Toast.makeText(getApplicationContext(), "No of gamma: " + gam_counter, Toast.LENGTH_LONG).show();
          
          saveGamma();
+         pwPixOut.flush();
+         pwPixOut.close();
       }
    }
 
@@ -146,12 +170,18 @@ public class MainActivity extends Activity {
                if (r > THRESHOLD || b > THRESHOLD || g > THRESHOLD)
                   combinedPic.setPixel(i, j, pix_color);
                   
-               if (r > THRESHOLD)
+               if (r > THRESHOLD) {
                   gam_counter++;
-               if (b > THRESHOLD)
+                  pwPixOut.println(r + ", " + pic_counter + ", " + i + ", " + j + ", red");
+               }
+               if (b > THRESHOLD) {
                   gam_counter++;
-               if (g > THRESHOLD)
+                  pwPixOut.println(r + ", " + pic_counter + ", " + i + ", " + j + ", blue");
+               }
+               if (g > THRESHOLD) {
                   gam_counter++;
+                  pwPixOut.println(r + ", " + pic_counter + ", " + i + ", " + j + ", green");
+               }
 
                if (hMode) {
                   histoData[r]++;
@@ -194,6 +224,8 @@ public class MainActivity extends Activity {
             Toast.makeText(getApplicationContext(), "Exp finished: " + gam_counter, Toast.LENGTH_LONG).show();
 
             saveGamma();
+            pwPixOut.flush();
+            pwPixOut.close();
             return;
          }
 
@@ -238,8 +270,10 @@ public class MainActivity extends Activity {
 
       if (extention == ".txt")
          timeStamp = "SomeNumbers_" + timeStamp;
+      else if (extention == ".png")
+         timeStamp = "CombinedPicture_" + timeStamp;
 
-      mFile = new File(mStorageDir.getPath() + File.separator +  "CombinedPicture_" + timeStamp + extention);
+      mFile = new File(mStorageDir.getPath() + File.separator +  timeStamp + extention);
            
       return mFile;
    }
