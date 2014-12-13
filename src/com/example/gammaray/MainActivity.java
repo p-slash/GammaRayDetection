@@ -101,7 +101,8 @@ public class MainActivity extends Activity {
          }
          
          try {              
-            pwPixOut = new PrintWriter(fPixOut); 
+            pwPixOut = new PrintWriter(fPixOut);
+            pwPixOut.println("value, time, x, y, comp");
          }
          catch (FileNotFoundException e) {
             Log.d("DeadJim", "File not found: " + e.getMessage());
@@ -176,11 +177,11 @@ public class MainActivity extends Activity {
                }
                if (b > THRESHOLD) {
                   gam_counter++;
-                  pwPixOut.println(r + ", " + pic_counter + ", " + i + ", " + j + ", blue");
+                  pwPixOut.println(b + ", " + pic_counter + ", " + i + ", " + j + ", blue");
                }
                if (g > THRESHOLD) {
                   gam_counter++;
-                  pwPixOut.println(r + ", " + pic_counter + ", " + i + ", " + j + ", green");
+                  pwPixOut.println(g + ", " + pic_counter + ", " + i + ", " + j + ", green");
                }
 
                if (hMode) {
