@@ -169,7 +169,7 @@ public class MainActivity extends Activity {
                b = Color.blue(pix_color);
 
                if (r > THRESHOLD || b > THRESHOLD || g > THRESHOLD)
-                  combinedPic.setPixel(i, j, pix_color);
+                  combinedPic.setPixel(i, j, Color.WHITE);
                   
                if (r > THRESHOLD) {
                   gam_counter++;
